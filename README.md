@@ -14,7 +14,7 @@ Semantics only. API design is deferred.
 
 ## Paper
 
-[Read the paper (HTML)](generated/DxxxxR0.html)
+[Read the paper (HTML)](https://andyD123.github.io/canonical-reduce/generated/DxxxxR0.html) | [PDF](generated/DxxxxR0.pdf)
 
 ## Building
 
