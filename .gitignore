@@ -1,0 +1,10 @@
+# Build artifacts
+generated/
+
+# Dependencies
+wg21/deps/
+
+# Editor files
+*.swp
+*~
+.DS_Store
