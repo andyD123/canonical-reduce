@@ -1,57 +1,81 @@
-# SG14 Demonstrators
+# SG14 Performance Demonstrators
 
-Performance demonstrators presented at the SG14 (Low Latency/Games/Embedded/Financial Trading) session, February 2026.
+Production-quality implementations of the §4 canonical reduction, presented to
+SG14 (Low Latency / Games / Embedded / Financial Trading).  These complement the
+Appendix K reference demonstrators by adding:
 
-These implementations are **conformance-verified** against the §4 canonical expression specification in P4016R0. Each produces identical golden hex values for the same `(N, L, seed)` inputs.
+- **Throughput benchmarks** against `std::accumulate`, `std::reduce`, and CUB
+- **Robustness stress tests** — length sweep + hostile cancellation (±1e16 at prime strides 7/11 + cluster)
+- **Cross-ISA golden-value verification** — all three produce identical hex for the same seed/N/L
 
 ## Files
 
-| File | Platform | Godbolt | Build flags |
-|------|----------|---------|-------------|
-| `x86_avx2.cpp` | x86-64 (SSE2/AVX2/AVX512) | [godbolt.org/z/jbYqf1Eez](https://godbolt.org/z/jbYqf1Eez) | `-O3 -std=c++20 -ffp-contract=off -fno-fast-math` |
-| `arm_neon.cpp` | AArch64 (NEON) | [godbolt.org/z/v369Mbnvh](https://godbolt.org/z/v369Mbnvh) | `-O3 -std=c++20 -march=armv8-a -ffp-contract=off -fno-fast-math` |
-| `cuda_reduce.cu` | CUDA (NVCC) | [godbolt.org/z/x58GzE73q](https://godbolt.org/z/x58GzE73q) | `-O3 -std=c++17 --fmad=false` |
+| File | Platform | Godbolt | Notes |
+|------|----------|---------|-------|
+| `x86_avx2.cpp` | x86-64 | [link](https://godbolt.org/z/jGThKbrqq) | SSE2/AVX2/AVX512 multiversion; 26.5 GB/s single-thread |
+| `arm_neon.cpp` | AArch64 | [link](https://godbolt.org/z/jnb5Pn1hP) | NEON 8-block unroll; cross-platform golden match |
+| `cuda.cu` | CUDA | [link](https://godbolt.org/z/x58GzE73q) | 3-phase kernel; ~80% of CUB throughput |
 
-## Golden Reference Values
+## Golden values
 
-N = 1,000,000 doubles, seed = `0x243F6A8885A308D3`:
+All demonstrators use SEED = `0x243F6A8885A308D3`, N = 1,000,000 doubles:
 
-| Configuration | Hex |
-|---------------|-----|
-| L=16 (NARROW) | `0x40618f71f6379380` |
-| L=128 (WIDE)  | `0x40618f71f6379397` |
+- **L=16 (NARROW):** `0x40618f71f6379380`
+- **L=128 (WIDE):** `0x40618f71f6379397`
 
-All three platforms produce identical results.
+These match the Appendix K reference implementations and each other.
 
-## What These Demonstrate Beyond the Paper's Appendix K
+## §4 Conformance
 
-1. **Performance benchmarks** — throughput (GB/s) comparisons against `std::accumulate`, `std::reduce` (all execution policies), and NVIDIA CUB `DeviceReduce::Sum`.
-2. **Robustness test suite** — length-sweep reproducibility across 40+ input sizes (0 to 12288+) on both base and hostile (±1e16 cancellation at prime strides 7, 11) datasets.
-3. **Cross-ISA identity** — three architectures, identical hex output, verifiable with a single click on Compiler Explorer.
+All three demonstrators have been verified against §4:
 
-## Performance Summary
+- §4.3.1 Lane partitioning (`i mod L`) ✓
+- §4.2.3 Canonical iterative pairwise tree (binary counter stack) ✓
+- §4.2.2 Absent operand propagation (count-aware combine) ✓
+- §4.4 Two-stage reduction (per-lane + cross-lane) ✓
+- §4.5 Init placement (`op(init, R)`) ✓
 
-### x86 (Compiler Explorer, AVX2, N=1M)
+## Running on Compiler Explorer
 
-| Variant | Throughput | vs accumulate |
-|---------|-----------|---------------|
-| `std::accumulate` | 5.4 GB/s | baseline |
-| `std::reduce` | 21.4 GB/s | +297% |
-| Canonical (L=16, single-threaded) | 26.5 GB/s | +391% |
+### Getting a clean session
 
-### CUDA (vs CUB)
+Compiler Explorer remembers your last session.  If it opens in CMake mode or
+with stale settings, **open godbolt.org in an incognito / private browser
+window** — this gives you a fresh single-file session.
 
-The canonical GPU implementation runs approximately 20% slower than CUB `DeviceReduce::Sum` (~80% of CUB throughput). This is the cost of determinism — CUB is free to reassociate across warps and blocks, while the canonical kernel must preserve the specified expression tree.
+### Compiler and flags
 
-## §4 Conformance Verification
+**x86:**
+```
+Compiler: x86-64 clang (trunk)  — or GCC
+Flags:    -O3 -std=c++20 -ffp-contract=off -fno-fast-math
+```
 
-All three demonstrators have been reviewed against the P4016R0 §4 normative specification:
+**ARM / AArch64:**
+```
+Compiler: ARM64 GCC (trunk)  — or AArch64 clang
+Flags:    -O3 -std=c++20 -march=armv8-a -ffp-contract=off -fno-fast-math
+```
 
-- **§4.2.3** Canonical iterative pairwise tree (binary counter stack with "older on left" combine order)
-- **§4.3.1** Lane partitioning by `i mod L`
-- **§4.3.2** Fixed-length leaves with `K = ceil(N/L)`
-- **§4.2.2** Absent-operand propagation (count-aware combine / NaN sentinel on CUDA)
-- **§4.4** Two-stage reduction (per-lane tree + cross-lane tree)
-- **§4.5** Init placement: `op(init, R)` applied once after tree completion
+**CUDA:**
+```
+Compiler: NVCC (trunk)
+Flags:    -O3 -std=c++17 --fmad=false
+```
 
-The 8-block unroll optimisation (pushing at binary counter level 3) preserves the canonical tree shape — the parenthesisation `((b0+b1)+(b2+b3))+((b4+b5)+(b6+b7))` is identical to what the shift-reduce algorithm produces for 8 consecutive blocks.
+### CMake mode troubleshooting
+
+If the Godbolt link opens in CMake mode, you may see a link error like
+`-lfmtd: not found`.  The code does not use fmt — this is a CE environment
+artefact.  Fix: open an incognito window, paste the source, select the compiler,
+and enter the flags above in the "Compiler options" box.
+
+## Relationship to Appendix K
+
+The paper's Appendix K contains seven Godbolt demonstrators that serve as
+**minimal reference implementations** — they prove the spec is implementable.
+
+These SG14 demonstrators are **performance-oriented variants** of the same
+algorithm, adding benchmarks, hostile-data stress tests, and ISA multiversion
+dispatch.  They produce identical results to the Appendix K links for the same
+seed, N, and L.

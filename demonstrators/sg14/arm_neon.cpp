@@ -8,7 +8,6 @@
 //     * Multiple lengths (tiny, around L, around k*L boundaries)
 //     * Hostile overlay: +1e16 at i%7==0, -1e16 at i%11==0, plus (+,+,-,-) cluster
 //
-// Source: godbolt.org/z/v369Mbnvh
 // Build (CE):
 //   -O3 -std=c++20 -march=armv8-a -ffp-contract=off -fno-fast-math
 //
@@ -337,13 +336,18 @@ static const Ops& select_ops() {
 // Robustness guard (MATCHES x86 demo)
 // ============================================================================
 static inline bool depth_overflow(size_t level, size_t max_depth) {
-    return (level >= max_depth) || (level >= 32);
+    return (level >= max_depth) || (level >= 32); // 32-bit mask limitation + shift UB
 }
 
 // ============================================================================
 // Deterministic reduce specialized for L=16 and L=128, parameterized by Ops.
 // Canonical merge order: older partial on the left (stable in time / index).
 // Uses a binary-counter stack over blocks, with 8-block pre-reduction at level 3.
+//
+// Robustness guard (MATCHES x86):
+//  - prevents UB shift (1u<<level) and stack OOB if level >= MAX_DEPTH / 32.
+//  - if it ever triggers, we "saturate" merges into the top bucket (MAX_DEPTH-1).
+//    (For intended demo N this never triggers.)
 // ============================================================================
 
 static double deterministic_reduce_L16(const Ops& ops,
@@ -392,50 +396,81 @@ static double deterministic_reduce_L16(const Ops& ops,
 
     for (size_t g = 0; g < unrollable_groups; ++g) {
         const double* group_start = first + g * GROUP_SIZE * L;
+
         ops.reduce8_L16(group_start, current);
         current_count = L;
 
         size_t level = GROUP_LEVEL;
         for (;;) {
-            if (depth_overflow(level, MAX_DEPTH)) { merge_into_top(current, current_count); current_count = 0; break; }
+            if (depth_overflow(level, MAX_DEPTH)) {
+                merge_into_top(current, current_count);
+                current_count = 0;
+                break;
+            }
             const uint32_t bit = (1u << (uint32_t)level);
             if (!(valid_mask & bit)) break;
+
             size_t temp_count = 0;
-            ops.combine(stack[level], stack_counts[level], current, current_count, temp, &temp_count);
+            ops.combine(stack[level], stack_counts[level],
+                        current, current_count,
+                        temp, &temp_count);
+
             valid_mask &= ~bit;
             current = temp; temp = (current == buf0) ? buf1 : buf0;
             current_count = temp_count;
             ++level;
         }
+
         if (current_count != 0) {
-            if (depth_overflow(level, MAX_DEPTH)) { merge_into_top(current, current_count); }
-            else { for (size_t j = 0; j < current_count; ++j) stack[level][j] = current[j]; stack_counts[level] = current_count; valid_mask |= (1u << (uint32_t)level); }
+            if (depth_overflow(level, MAX_DEPTH)) {
+                merge_into_top(current, current_count);
+            } else {
+                for (size_t j = 0; j < current_count; ++j) stack[level][j] = current[j];
+                stack_counts[level] = current_count;
+                valid_mask |= (1u << (uint32_t)level);
+            }
         }
     }
 
     const size_t start_block = unrollable_groups * GROUP_SIZE;
+
     for (size_t b = start_block; b < num_blocks; ++b) {
         const size_t elem_start = b * L;
         const size_t elem_end   = (elem_start + L < N) ? (elem_start + L) : N;
         current_count = elem_end - elem_start;
+
         const double* src = first + elem_start;
         for (size_t j = 0; j < current_count; ++j) current[j] = src[j];
 
         size_t level = 0;
         for (;;) {
-            if (depth_overflow(level, MAX_DEPTH)) { merge_into_top(current, current_count); current_count = 0; break; }
+            if (depth_overflow(level, MAX_DEPTH)) {
+                merge_into_top(current, current_count);
+                current_count = 0;
+                break;
+            }
             const uint32_t bit = (1u << (uint32_t)level);
             if (!(valid_mask & bit)) break;
+
             size_t temp_count = 0;
-            ops.combine(stack[level], stack_counts[level], current, current_count, temp, &temp_count);
+            ops.combine(stack[level], stack_counts[level],
+                        current, current_count,
+                        temp, &temp_count);
+
             valid_mask &= ~bit;
             current = temp; temp = (current == buf0) ? buf1 : buf0;
             current_count = temp_count;
             ++level;
         }
+
         if (current_count != 0) {
-            if (depth_overflow(level, MAX_DEPTH)) { merge_into_top(current, current_count); }
-            else { for (size_t j = 0; j < current_count; ++j) stack[level][j] = current[j]; stack_counts[level] = current_count; valid_mask |= (1u << (uint32_t)level); }
+            if (depth_overflow(level, MAX_DEPTH)) {
+                merge_into_top(current, current_count);
+            } else {
+                for (size_t j = 0; j < current_count; ++j) stack[level][j] = current[j];
+                stack_counts[level] = current_count;
+                valid_mask |= (1u << (uint32_t)level);
+            }
         }
     }
 
@@ -449,7 +484,10 @@ static double deterministic_reduce_L16(const Ops& ops,
                 current_count = stack_counts[level];
             } else {
                 size_t temp_count = 0;
-                ops.combine(stack[level], stack_counts[level], current, current_count, temp, &temp_count);
+                ops.combine(stack[level], stack_counts[level],
+                            current, current_count,
+                            temp, &temp_count);
+
                 current = temp; temp = (current == buf0) ? buf1 : buf0;
                 current_count = temp_count;
             }
@@ -505,50 +543,81 @@ static double deterministic_reduce_L128(const Ops& ops,
 
     for (size_t g = 0; g < unrollable_groups; ++g) {
         const double* group_start = first + g * GROUP_SIZE * L;
+
         ops.reduce8_L128(group_start, current);
         current_count = L;
 
         size_t level = GROUP_LEVEL;
         for (;;) {
-            if (depth_overflow(level, MAX_DEPTH)) { merge_into_top(current, current_count); current_count = 0; break; }
+            if (depth_overflow(level, MAX_DEPTH)) {
+                merge_into_top(current, current_count);
+                current_count = 0;
+                break;
+            }
             const uint32_t bit = (1u << (uint32_t)level);
             if (!(valid_mask & bit)) break;
+
             size_t temp_count = 0;
-            ops.combine(stack[level], stack_counts[level], current, current_count, temp, &temp_count);
+            ops.combine(stack[level], stack_counts[level],
+                        current, current_count,
+                        temp, &temp_count);
+
             valid_mask &= ~bit;
             current = temp; temp = (current == buf0) ? buf1 : buf0;
             current_count = temp_count;
             ++level;
         }
+
         if (current_count != 0) {
-            if (depth_overflow(level, MAX_DEPTH)) { merge_into_top(current, current_count); }
-            else { for (size_t j = 0; j < current_count; ++j) stack[level][j] = current[j]; stack_counts[level] = current_count; valid_mask |= (1u << (uint32_t)level); }
+            if (depth_overflow(level, MAX_DEPTH)) {
+                merge_into_top(current, current_count);
+            } else {
+                for (size_t j = 0; j < current_count; ++j) stack[level][j] = current[j];
+                stack_counts[level] = current_count;
+                valid_mask |= (1u << (uint32_t)level);
+            }
         }
     }
 
     const size_t start_block = unrollable_groups * GROUP_SIZE;
+
     for (size_t b = start_block; b < num_blocks; ++b) {
         const size_t elem_start = b * L;
         const size_t elem_end   = (elem_start + L < N) ? (elem_start + L) : N;
         current_count = elem_end - elem_start;
+
         const double* src = first + elem_start;
         for (size_t j = 0; j < current_count; ++j) current[j] = src[j];
 
         size_t level = 0;
         for (;;) {
-            if (depth_overflow(level, MAX_DEPTH)) { merge_into_top(current, current_count); current_count = 0; break; }
+            if (depth_overflow(level, MAX_DEPTH)) {
+                merge_into_top(current, current_count);
+                current_count = 0;
+                break;
+            }
             const uint32_t bit = (1u << (uint32_t)level);
             if (!(valid_mask & bit)) break;
+
             size_t temp_count = 0;
-            ops.combine(stack[level], stack_counts[level], current, current_count, temp, &temp_count);
+            ops.combine(stack[level], stack_counts[level],
+                        current, current_count,
+                        temp, &temp_count);
+
             valid_mask &= ~bit;
             current = temp; temp = (current == buf0) ? buf1 : buf0;
             current_count = temp_count;
             ++level;
         }
+
         if (current_count != 0) {
-            if (depth_overflow(level, MAX_DEPTH)) { merge_into_top(current, current_count); }
-            else { for (size_t j = 0; j < current_count; ++j) stack[level][j] = current[j]; stack_counts[level] = current_count; valid_mask |= (1u << (uint32_t)level); }
+            if (depth_overflow(level, MAX_DEPTH)) {
+                merge_into_top(current, current_count);
+            } else {
+                for (size_t j = 0; j < current_count; ++j) stack[level][j] = current[j];
+                stack_counts[level] = current_count;
+                valid_mask |= (1u << (uint32_t)level);
+            }
         }
     }
 
@@ -562,7 +631,10 @@ static double deterministic_reduce_L128(const Ops& ops,
                 current_count = stack_counts[level];
             } else {
                 size_t temp_count = 0;
-                ops.combine(stack[level], stack_counts[level], current, current_count, temp, &temp_count);
+                ops.combine(stack[level], stack_counts[level],
+                            current, current_count,
+                            temp, &temp_count);
+
                 current = temp; temp = (current == buf0) ? buf1 : buf0;
                 current_count = temp_count;
             }
@@ -586,10 +658,14 @@ const char* expected_data[] = {
 const char* EXPECTED_NARROW = "0x40618f71f6379380";
 const char* EXPECTED_WIDE   = "0x40618f71f6379397";
 
+// ============================================================================
+// Dataset generator for arbitrary lengths (base + hostile)
+// ============================================================================
 static std::vector<double> make_data(size_t n, uint64_t seed, bool hostile) {
     std::vector<double> x(n);
     CrossPlatformRNG rng(seed);
     for (size_t i = 0; i < n; ++i) x[i] = rng.next_double();
+
     if (hostile) {
         inject_cancellation_prime_stride(x, 7, 11, 1e16);
         inject_cluster(x, 1e16);
@@ -597,26 +673,56 @@ static std::vector<double> make_data(size_t n, uint64_t seed, bool hostile) {
     return x;
 }
 
+// ============================================================================
+// Length sweep reproducibility table (matches x86 demo)
+// ============================================================================
 static void run_length_sweep(const Ops& ops, size_t L, bool hostile) {
     auto det = [&](const std::vector<double>& x) -> double {
-        return (L == 16) ? deterministic_reduce_L16(ops, x.data(), x.size(), 0.0)
-                         : deterministic_reduce_L128(ops, x.data(), x.size(), 0.0);
-    };
-    auto run_one = [&](size_t n) {
-        auto x = make_data(n, SEED, hostile);
-        double d0 = det(x); std::string d0h = to_hex(d0);
-        bool stable = true;
-        for (int r = 0; r < 3; ++r) { if (to_hex(det(x)) != d0h) stable = false; }
-        double acc = std::accumulate(x.begin(), x.end(), 0.0);
-        double red = std::reduce(x.begin(), x.end(), 0.0);
-        std::printf("  N=%-6zu det=%s %s  acc=%s  red=%s\n", n, d0h.c_str(), stable ? "✓" : "✗", to_hex(acc).c_str(), to_hex(red).c_str());
+        return (L == 16)
+            ? deterministic_reduce_L16(ops, x.data(), x.size(), 0.0)
+            : deterministic_reduce_L128(ops, x.data(), x.size(), 0.0);
     };
 
-    std::printf("L=%zu  dataset=%s\n", L, hostile ? "HOSTILE (+/-1e16 primes 7,11 + cluster)" : "BASE (RNG only)");
+    auto run_one = [&](size_t n) {
+        auto x = make_data(n, SEED, hostile);
+
+        double d0 = det(x);
+        std::string d0h = to_hex(d0);
+
+        bool stable = true;
+        for (int r = 0; r < 3; ++r) {
+            if (to_hex(det(x)) != d0h) stable = false;
+        }
+
+        double acc = std::accumulate(x.begin(), x.end(), 0.0);
+        double red = std::reduce(x.begin(), x.end(), 0.0);
+
+        std::printf("  N=%-6zu det=%s %s  acc=%s  red=%s\n",
+                    n,
+                    d0h.c_str(),
+                    stable ? "\xe2\x9c\x93" : "\xe2\x9c\x97",
+                    to_hex(acc).c_str(),
+                    to_hex(red).c_str());
+    };
+
+    std::printf("L=%zu  dataset=%s\n",
+                L,
+                hostile ? "HOSTILE (+/-1e16 primes 7,11 + cluster)" : "BASE (RNG only)");
+
     const size_t fixed[] = {0,1,2,3,4,5,7,8,15,16,17,31,32,33,63,64,65};
     for (size_t n : fixed) run_one(n);
-    for (int d = -3; d <= 3; ++d) { long n = (long)L + d; if (n >= 0) run_one((size_t)n); }
-    for (size_t k : {1UL, 2UL, 3UL, 4UL}) { if (k*L > 0) run_one(k*L - 1); run_one(k*L); run_one(k*L + 1); }
+
+    for (int d = -3; d <= 3; ++d) {
+        long n = (long)L + d;
+        if (n >= 0) run_one((size_t)n);
+    }
+
+    for (size_t k : {1UL, 2UL, 3UL, 4UL}) {
+        if (k*L > 0) run_one(k*L - 1);
+        run_one(k*L);
+        run_one(k*L + 1);
+    }
+
     std::printf("\n");
 }
 
@@ -624,10 +730,10 @@ static void run_length_sweep(const Ops& ops, size_t L, bool hostile) {
 // main
 // ============================================================================
 int main() {
-    std::printf("════════════════════════════════════════════════════════════════\n");
+    std::printf("\xe2\x95\x90\xe2\x95\x90\xe2\x95\x90\xe2\x95\x90\xe2\x95\x90\xe2\x95\x90\xe2\x95\x90\xe2\x95\x90\xe2\x95\x90\xe2\x95\x90\xe2\x95\x90\xe2\x95\x90\xe2\x95\x90\xe2\x95\x90\xe2\x95\x90\xe2\x95\x90\xe2\x95\x90\xe2\x95\x90\xe2\x95\x90\xe2\x95\x90\xe2\x95\x90\xe2\x95\x90\xe2\x95\x90\xe2\x95\x90\xe2\x95\x90\xe2\x95\x90\xe2\x95\x90\xe2\x95\x90\xe2\x95\x90\xe2\x95\x90\xe2\x95\x90\xe2\x95\x90\xe2\x95\x90\xe2\x95\x90\xe2\x95\x90\xe2\x95\x90\xe2\x95\x90\xe2\x95\x90\xe2\x95\x90\xe2\x95\x90\xe2\x95\x90\xe2\x95\x90\xe2\x95\x90\xe2\x95\x90\xe2\x95\x90\xe2\x95\x90\xe2\x95\x90\xe2\x95\x90\xe2\x95\x90\xe2\x95\x90\xe2\x95\x90\xe2\x95\x90\xe2\x95\x90\xe2\x95\x90\xe2\x95\x90\xe2\x95\x90\xe2\x95\x90\xe2\x95\x90\xe2\x95\x90\xe2\x95\x90\xe2\x95\x90\xe2\x95\x90\xe2\x95\x90\xe2\x95\x90\xe2\x95\x90\n");
     std::printf("  Deterministic Parallel Reduction\n");
     std::printf("  AArch64 NEON (Exact Tree Order Preserved)\n");
-    std::printf("════════════════════════════════════════════════════════════════\n\n");
+    std::printf("\xe2\x95\x90\xe2\x95\x90\xe2\x95\x90\xe2\x95\x90\xe2\x95\x90\xe2\x95\x90\xe2\x95\x90\xe2\x95\x90\xe2\x95\x90\xe2\x95\x90\xe2\x95\x90\xe2\x95\x90\xe2\x95\x90\xe2\x95\x90\xe2\x95\x90\xe2\x95\x90\xe2\x95\x90\xe2\x95\x90\xe2\x95\x90\xe2\x95\x90\xe2\x95\x90\xe2\x95\x90\xe2\x95\x90\xe2\x95\x90\xe2\x95\x90\xe2\x95\x90\xe2\x95\x90\xe2\x95\x90\xe2\x95\x90\xe2\x95\x90\xe2\x95\x90\xe2\x95\x90\xe2\x95\x90\xe2\x95\x90\xe2\x95\x90\xe2\x95\x90\xe2\x95\x90\xe2\x95\x90\xe2\x95\x90\xe2\x95\x90\xe2\x95\x90\xe2\x95\x90\xe2\x95\x90\xe2\x95\x90\xe2\x95\x90\xe2\x95\x90\xe2\x95\x90\xe2\x95\x90\xe2\x95\x90\xe2\x95\x90\xe2\x95\x90\xe2\x95\x90\xe2\x95\x90\xe2\x95\x90\xe2\x95\x90\xe2\x95\x90\xe2\x95\x90\xe2\x95\x90\xe2\x95\x90\xe2\x95\x90\xe2\x95\x90\xe2\x95\x90\xe2\x95\x90\xe2\x95\x90\xe2\x95\x90\n\n");
 
 #if HAS_AARCH64
     const char* platform = "ARM64";
@@ -654,18 +760,21 @@ int main() {
         std::string hex = to_hex(data[(size_t)i]);
         bool ok = (hex == expected_data[i]);
         data_ok &= ok;
-        std::printf("  data[%d] = %s  %s\n", i, hex.c_str(), ok ? "✓" : "✗");
+        std::printf("  data[%d] = %s  %s\n", i, hex.c_str(), ok ? "\xe2\x9c\x93" : "\xe2\x9c\x97");
     }
 
     std::printf("\nCORRECTNESS:\n");
     double narrow = deterministic_reduce_L16(ops, data.data(), N, 0.0);
     double wide   = deterministic_reduce_L128(ops, data.data(), N, 0.0);
+
     std::string narrow_hex = to_hex(narrow);
     std::string wide_hex   = to_hex(wide);
+
     bool narrow_ok = (narrow_hex == EXPECTED_NARROW);
     bool wide_ok   = (wide_hex   == EXPECTED_WIDE);
-    std::printf("  NARROW: %s  %s (expected %s)\n", narrow_hex.c_str(), narrow_ok ? "✓" : "✗", EXPECTED_NARROW);
-    std::printf("  WIDE:   %s  %s (expected %s)\n", wide_hex.c_str(),   wide_ok ? "✓" : "✗", EXPECTED_WIDE);
+
+    std::printf("  NARROW: %s  %s (expected %s)\n", narrow_hex.c_str(), narrow_ok ? "\xe2\x9c\x93" : "\xe2\x9c\x97", EXPECTED_NARROW);
+    std::printf("  WIDE:   %s  %s (expected %s)\n", wide_hex.c_str(),   wide_ok ? "\xe2\x9c\x93" : "\xe2\x9c\x97", EXPECTED_WIDE);
 
     std::printf("\nRUN-TO-RUN STABILITY:\n");
     bool n_stable = true, w_stable = true;
@@ -673,19 +782,20 @@ int main() {
         if (to_hex(deterministic_reduce_L16(ops, data.data(), N, 0.0)) != narrow_hex) n_stable = false;
         if (to_hex(deterministic_reduce_L128(ops, data.data(), N, 0.0)) != wide_hex)  w_stable = false;
     }
-    std::printf("  NARROW: %s\n", n_stable ? "STABLE ✓" : "UNSTABLE ✗");
-    std::printf("  WIDE:   %s\n", w_stable ? "STABLE ✓" : "UNSTABLE ✗");
+    std::printf("  NARROW: %s\n", n_stable ? "STABLE \xe2\x9c\x93" : "UNSTABLE \xe2\x9c\x97");
+    std::printf("  WIDE:   %s\n", w_stable ? "STABLE \xe2\x9c\x93" : "UNSTABLE \xe2\x9c\x97");
 
     std::printf("\nTRANSLATIONAL INVARIANCE:\n");
     bool n_trans = true, w_trans = true;
     for (size_t off : {0UL, 1UL, 7UL, 15UL, 31UL, 63UL}) {
         std::vector<double> buf(N + off + 128);
         std::copy(data.begin(), data.end(), buf.data() + off);
+
         if (to_hex(deterministic_reduce_L16(ops, buf.data() + off, N, 0.0)) != narrow_hex) n_trans = false;
         if (to_hex(deterministic_reduce_L128(ops, buf.data() + off, N, 0.0)) != wide_hex) w_trans = false;
     }
-    std::printf("  NARROW: %s\n", n_trans ? "INVARIANT ✓" : "VARIES ✗");
-    std::printf("  WIDE:   %s\n", w_trans ? "INVARIANT ✓" : "VARIES ✗");
+    std::printf("  NARROW: %s\n", n_trans ? "INVARIANT \xe2\x9c\x93" : "VARIES \xe2\x9c\x97");
+    std::printf("  WIDE:   %s\n", w_trans ? "INVARIANT \xe2\x9c\x93" : "VARIES \xe2\x9c\x97");
 
     std::printf("\nLENGTH-SWEEP REPRODUCIBILITY (BASE + HOSTILE):\n\n");
     run_length_sweep(ops, 16,  false);
@@ -695,42 +805,66 @@ int main() {
 
     std::printf("PERFORMANCE (CE timings vary; best-of-trials):\n\n");
 
-    double t_acc = bench("std::accumulate", N, [&]() { return std::accumulate(data.begin(), data.end(), 0.0); });
-    double t_reduce_np = bench("std::reduce (no policy)", N, [&]() { return std::reduce(data.begin(), data.end(), 0.0); });
+    double t_acc = bench("std::accumulate", N, [&]() {
+        return std::accumulate(data.begin(), data.end(), 0.0);
+    });
+
+    double t_reduce_np = bench("std::reduce (no policy)", N, [&]() {
+        return std::reduce(data.begin(), data.end(), 0.0);
+    });
 
 #if HAS_EXECUTION
-    double t_seq = bench("std::reduce(seq)", N, [&]() { return std::reduce(std::execution::seq, data.begin(), data.end(), 0.0); });
-    double t_unseq = bench("std::reduce(unseq)", N, [&]() { return std::reduce(std::execution::unseq, data.begin(), data.end(), 0.0); });
+    double t_seq = bench("std::reduce(seq)", N, [&]() {
+        return std::reduce(std::execution::seq, data.begin(), data.end(), 0.0);
+    });
+
+    double t_unseq = bench("std::reduce(unseq)", N, [&]() {
+        return std::reduce(std::execution::unseq, data.begin(), data.end(), 0.0);
+    });
+
 #if !defined(NO_PAR_POLICIES)
-    double t_par = bench("std::reduce(par)", N, [&]() { return std::reduce(std::execution::par, data.begin(), data.end(), 0.0); });
-    double t_par_unseq = bench("std::reduce(par_unseq)", N, [&]() { return std::reduce(std::execution::par_unseq, data.begin(), data.end(), 0.0); });
+    double t_par = bench("std::reduce(par)", N, [&]() {
+        return std::reduce(std::execution::par, data.begin(), data.end(), 0.0);
+    });
+
+    double t_par_unseq = bench("std::reduce(par_unseq)", N, [&]() {
+        return std::reduce(std::execution::par_unseq, data.begin(), data.end(), 0.0);
+    });
+
     (void)t_par; (void)t_par_unseq;
 #endif
     (void)t_seq; (void)t_unseq;
 #endif
 
-    double t_det_n = bench("deterministic_reduce NARROW (M=128)", N, [&]() { return deterministic_reduce_L16(ops, data.data(), N, 0.0); });
-    double t_det_w = bench("deterministic_reduce WIDE   (M=1024)", N, [&]() { return deterministic_reduce_L128(ops, data.data(), N, 0.0); });
+    double t_det_n = bench("deterministic_reduce NARROW (M=128)", N, [&]() {
+        return deterministic_reduce_L16(ops, data.data(), N, 0.0);
+    });
+
+    double t_det_w = bench("deterministic_reduce WIDE   (M=1024)", N, [&]() {
+        return deterministic_reduce_L128(ops, data.data(), N, 0.0);
+    });
 
     std::printf("\nOverhead vs std::accumulate:\n");
     std::printf("  NARROW: %+.1f%%\n", (t_det_n / t_acc - 1.0) * 100.0);
     std::printf("  WIDE:   %+.1f%%\n", (t_det_w / t_acc - 1.0) * 100.0);
 
-    std::printf("\n════════════════════════════════════════════════════════════════\n");
+    std::printf("\n\xe2\x95\x90\xe2\x95\x90\xe2\x95\x90\xe2\x95\x90\xe2\x95\x90\xe2\x95\x90\xe2\x95\x90\xe2\x95\x90\xe2\x95\x90\xe2\x95\x90\xe2\x95\x90\xe2\x95\x90\xe2\x95\x90\xe2\x95\x90\xe2\x95\x90\xe2\x95\x90\xe2\x95\x90\xe2\x95\x90\xe2\x95\x90\xe2\x95\x90\xe2\x95\x90\xe2\x95\x90\xe2\x95\x90\xe2\x95\x90\xe2\x95\x90\xe2\x95\x90\xe2\x95\x90\xe2\x95\x90\xe2\x95\x90\xe2\x95\x90\xe2\x95\x90\xe2\x95\x90\xe2\x95\x90\xe2\x95\x90\xe2\x95\x90\xe2\x95\x90\xe2\x95\x90\xe2\x95\x90\xe2\x95\x90\xe2\x95\x90\xe2\x95\x90\xe2\x95\x90\xe2\x95\x90\xe2\x95\x90\xe2\x95\x90\xe2\x95\x90\xe2\x95\x90\xe2\x95\x90\xe2\x95\x90\xe2\x95\x90\xe2\x95\x90\xe2\x95\x90\xe2\x95\x90\xe2\x95\x90\xe2\x95\x90\xe2\x95\x90\xe2\x95\x90\xe2\x95\x90\xe2\x95\x90\xe2\x95\x90\xe2\x95\x90\xe2\x95\x90\xe2\x95\x90\xe2\x95\x90\xe2\x95\x90\n");
     std::printf("VERIFICATION BLOCK\n");
-    std::printf("════════════════════════════════════════════════════════════════\n");
+    std::printf("\xe2\x95\x90\xe2\x95\x90\xe2\x95\x90\xe2\x95\x90\xe2\x95\x90\xe2\x95\x90\xe2\x95\x90\xe2\x95\x90\xe2\x95\x90\xe2\x95\x90\xe2\x95\x90\xe2\x95\x90\xe2\x95\x90\xe2\x95\x90\xe2\x95\x90\xe2\x95\x90\xe2\x95\x90\xe2\x95\x90\xe2\x95\x90\xe2\x95\x90\xe2\x95\x90\xe2\x95\x90\xe2\x95\x90\xe2\x95\x90\xe2\x95\x90\xe2\x95\x90\xe2\x95\x90\xe2\x95\x90\xe2\x95\x90\xe2\x95\x90\xe2\x95\x90\xe2\x95\x90\xe2\x95\x90\xe2\x95\x90\xe2\x95\x90\xe2\x95\x90\xe2\x95\x90\xe2\x95\x90\xe2\x95\x90\xe2\x95\x90\xe2\x95\x90\xe2\x95\x90\xe2\x95\x90\xe2\x95\x90\xe2\x95\x90\xe2\x95\x90\xe2\x95\x90\xe2\x95\x90\xe2\x95\x90\xe2\x95\x90\xe2\x95\x90\xe2\x95\x90\xe2\x95\x90\xe2\x95\x90\xe2\x95\x90\xe2\x95\x90\xe2\x95\x90\xe2\x95\x90\xe2\x95\x90\xe2\x95\x90\xe2\x95\x90\xe2\x95\x90\xe2\x95\x90\xe2\x95\x90\xe2\x95\x90\n");
     std::printf("Platform: %s\n", platform);
     std::printf("Selected: %s\n", ops.name);
     std::printf("SEED:     0x%016llx\n", (unsigned long long)SEED);
     std::printf("N:        %zu\n", N);
     std::printf("NARROW:   %s  (M=128,  L=16)\n", narrow_hex.c_str());
     std::printf("WIDE:     %s  (M=1024, L=128)\n", wide_hex.c_str());
-    std::printf("════════════════════════════════════════════════════════════════\n");
+    std::printf("\xe2\x95\x90\xe2\x95\x90\xe2\x95\x90\xe2\x95\x90\xe2\x95\x90\xe2\x95\x90\xe2\x95\x90\xe2\x95\x90\xe2\x95\x90\xe2\x95\x90\xe2\x95\x90\xe2\x95\x90\xe2\x95\x90\xe2\x95\x90\xe2\x95\x90\xe2\x95\x90\xe2\x95\x90\xe2\x95\x90\xe2\x95\x90\xe2\x95\x90\xe2\x95\x90\xe2\x95\x90\xe2\x95\x90\xe2\x95\x90\xe2\x95\x90\xe2\x95\x90\xe2\x95\x90\xe2\x95\x90\xe2\x95\x90\xe2\x95\x90\xe2\x95\x90\xe2\x95\x90\xe2\x95\x90\xe2\x95\x90\xe2\x95\x90\xe2\x95\x90\xe2\x95\x90\xe2\x95\x90\xe2\x95\x90\xe2\x95\x90\xe2\x95\x90\xe2\x95\x90\xe2\x95\x90\xe2\x95\x90\xe2\x95\x90\xe2\x95\x90\xe2\x95\x90\xe2\x95\x90\xe2\x95\x90\xe2\x95\x90\xe2\x95\x90\xe2\x95\x90\xe2\x95\x90\xe2\x95\x90\xe2\x95\x90\xe2\x95\x90\xe2\x95\x90\xe2\x95\x90\xe2\x95\x90\xe2\x95\x90\xe2\x95\x90\xe2\x95\x90\xe2\x95\x90\xe2\x95\x90\xe2\x95\x90\n");
 
     bool all_pass = data_ok && narrow_ok && wide_ok && n_stable && w_stable && n_trans && w_trans;
-    std::printf("\nOverall: %s\n", all_pass ? "ALL TESTS PASSED ✓" : "SOME TESTS FAILED ✗");
+    std::printf("\nOverall: %s\n", all_pass ? "ALL TESTS PASSED \xe2\x9c\x93" : "SOME TESTS FAILED \xe2\x9c\x97");
 
-    do_not_optimize(narrow); do_not_optimize(wide);
-    do_not_optimize(t_acc); do_not_optimize(t_reduce_np);
+    do_not_optimize(narrow);
+    do_not_optimize(wide);
+    do_not_optimize(t_acc);
+    do_not_optimize(t_reduce_np);
     return all_pass ? 0 : 1;
 }
