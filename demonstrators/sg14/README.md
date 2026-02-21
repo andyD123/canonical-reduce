@@ -13,7 +13,7 @@ Appendix K reference demonstrators by adding:
 | File | Platform | Godbolt | Notes |
 |------|----------|---------|-------|
 | `x86_avx2.cpp` | x86-64 | [link](https://godbolt.org/z/jGThKbrqq) | SSE2/AVX2/AVX512 multiversion; 26.5 GB/s single-thread |
-| `arm_neon.cpp` | AArch64 | [link](https://godbolt.org/z/jnb5Pn1hP) | NEON 8-block unroll; cross-platform golden match |
+| `arm_neon.cpp` | AArch64 | [link](https://godbolt.org/z/5n6rWGbq5) | NEON 8-block unroll; cross-platform golden match |
 | `cuda.cu` | CUDA | [link](https://godbolt.org/z/x58GzE73q) | 3-phase kernel; ~80% of CUB throughput |
 
 ## Golden values
