@@ -4,7 +4,7 @@
   <meta charset="utf-8" />
   <meta name="generator" content="pandoc" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes" />
-  <title>P4016R0: Canonical Parallel Reduction — A Fixed Expression Structure for Run-To-Run Consistency</title>
+  <title>P4016R0 — Canonical Parallel Reduction: A Fixed Expression Structure for Run-To-Run Consistency</title>
   <style>
 code{white-space: pre-wrap;}
 span.smallcaps{font-variant: small-caps;}
@@ -86,176 +86,110 @@ code span.vs { color: #4070a0; }
 code span.wa { color: #60a0b0; font-weight: bold; font-style: italic; } 
 </style>
   <style type="text/css">
-:root {
---text-color: #1a1a1a;
---heading-color: #003366;
---link-color: #0055aa;
---code-bg: #f5f5f0;
---code-border: #d0d0c8;
---table-border: #999;
---table-head-bg: #e8e8e0;
---note-bg: #f0f4f8;
---note-border: #6688aa;
---page-width: 210mm;
-}
-html {
-font-size: 10.5pt;
-}
 body {
-font-family: 'Noto Serif', 'DejaVu Serif', Georgia, 'Times New Roman', serif;
-color: var(--text-color);
-line-height: 1.5;
-max-width: 180mm;
-margin: 15mm auto;
-padding: 0 10mm;
-hyphens: auto;
-text-rendering: optimizeLegibility;
+font-family: 'DejaVu Serif', 'Times New Roman', Georgia, serif;
+max-width: 52em;
+margin: 2em auto;
+padding: 0 1.5em;
+line-height: 1.55;
+color: #222;
+font-size: 14px;
 }
-
-h1.title {
-font-family: 'Noto Sans', 'DejaVu Sans', Helvetica, Arial, sans-serif;
-font-size: 1.6em;
-color: var(--heading-color);
-border-bottom: 2px solid var(--heading-color);
-padding-bottom: 8px;
-margin-top: 0;
-line-height: 1.3;
-}
-
 h1, h2, h3, h4, h5, h6 {
-font-family: 'Noto Sans', 'DejaVu Sans', Helvetica, Arial, sans-serif;
-color: var(--heading-color);
-margin-top: 1.5em;
+font-family: 'DejaVu Sans', 'Helvetica Neue', Arial, sans-serif;
+color: #005A9C;
+margin-top: 1.8em;
 margin-bottom: 0.5em;
-page-break-after: avoid;
+line-height: 1.25;
 }
-h2 {
-font-size: 1.35em;
-border-bottom: 1px solid #ccc;
-padding-bottom: 4px;
-}
+h1 { font-size: 1.7em; border-bottom: 2px solid #005A9C; padding-bottom: 0.3em; }
+h2 { font-size: 1.4em; border-bottom: 1px solid #ccc; padding-bottom: 0.2em; }
 h3 { font-size: 1.15em; }
 h4 { font-size: 1.05em; }
-
-p {
-margin-top: 0.4em;
-margin-bottom: 0.6em;
-text-align: justify;
+code, pre {
+font-family: 'DejaVu Sans Mono', 'Consolas', 'Courier New', monospace;
+font-size: 0.92em;
 }
-
 pre {
-font-family: 'Noto Sans Mono', 'DejaVu Sans Mono', 'Consolas', 'Courier New', monospace;
-font-size: 0.82em;
-background-color: var(--code-bg);
-border: 1px solid var(--code-border);
+background: #f5f5f5;
+border: 1px solid #ddd;
 border-radius: 3px;
-padding: 8px 10px;
+padding: 0.8em 1em;
 overflow-x: auto;
-line-height: 1.35;
-page-break-inside: avoid;
-white-space: pre;
-word-wrap: normal;
+line-height: 1.4;
+}
+code {
+background: #f0f0f0;
+padding: 0.15em 0.35em;
+border-radius: 2px;
 }
 pre code {
 background: none;
-border: none;
 padding: 0;
-font-size: inherit;
+border-radius: 0;
 }
-
-code {
-font-family: 'Noto Sans Mono', 'DejaVu Sans Mono', 'Consolas', monospace;
-font-size: 0.88em;
-background-color: var(--code-bg);
-border: 1px solid var(--code-border);
-border-radius: 2px;
-padding: 1px 4px;
-}
-
 table {
 border-collapse: collapse;
-margin: 1em auto;
-font-size: 0.92em;
-page-break-inside: avoid;
-width: auto;
-max-width: 100%;
+margin: 1em 0;
+width: 100%;
+font-size: 0.93em;
 }
 th, td {
-border: 1px solid var(--table-border);
-padding: 5px 8px;
+border: 1px solid #bbb;
+padding: 0.45em 0.7em;
 text-align: left;
 vertical-align: top;
 }
 th {
-background-color: var(--table-head-bg);
-font-family: 'Noto Sans', 'DejaVu Sans', sans-serif;
-font-weight: 600;
-font-size: 0.95em;
+background: #e8e8e8;
+font-family: 'DejaVu Sans', 'Helvetica Neue', Arial, sans-serif;
+font-weight: bold;
 }
-
+tr:nth-child(even) { background: #f9f9f9; }
 blockquote {
-background-color: var(--note-bg);
-border-left: 3px solid var(--note-border);
-margin: 0.8em 0;
-padding: 6px 12px;
-font-size: 0.95em;
+border-left: 3px solid #005A9C;
+margin: 1em 0;
+padding: 0.5em 1em;
+background: #f0f4f8;
+color: #333;
 }
-
-ul, ol {
-margin-top: 0.3em;
-margin-bottom: 0.5em;
-padding-left: 2em;
-}
-li {
-margin-bottom: 0.25em;
-}
-
-strong { font-weight: 700; }
-em { font-style: italic; }
-
-a {
-color: var(--link-color);
-text-decoration: none;
-}
+a { color: #005A9C; text-decoration: none; }
 a:hover { text-decoration: underline; }
+hr { border: none; border-top: 1px solid #ccc; margin: 2em 0; }
 
-hr {
-border: none;
-border-top: 1px solid #ccc;
-margin: 1.5em 0;
+nav#TOC {
+background: #f8f9fa;
+border: 1px solid #ddd;
+border-radius: 4px;
+padding: 1em 1.5em;
+margin: 1.5em 0 2em 0;
+page-break-after: always;
 }
+nav#TOC > ul { margin: 0; padding-left: 0; list-style: none; }
+nav#TOC ul { padding-left: 1.2em; }
+nav#TOC li { margin: 0.2em 0; line-height: 1.4; }
+nav#TOC a { text-decoration: none; color: #333; }
+nav#TOC a:hover { color: #005A9C; text-decoration: underline; }
 
-body > p:first-of-type {
-font-family: 'Noto Sans', 'DejaVu Sans', sans-serif;
-font-size: 0.95em;
+.metadata-block p {
+margin: 0.15em 0;
+line-height: 1.4;
 }
-
-h2 { page-break-before: auto; }
-.appendix h2 { page-break-before: always; }
 
 @media print {
-body {
-max-width: none;
-margin: 0;
-padding: 10mm 15mm;
-font-size: 9.5pt;
-}
-pre {
-font-size: 7.5pt;
-border: 0.5pt solid #999;
-}
-h2 { page-break-before: auto; }
-a { color: var(--link-color); }
-a[href^="http"]::after {
-content: none; 
-}
+body { max-width: none; margin: 0; padding: 0 1cm; font-size: 11pt; }
+nav#TOC { page-break-after: always; }
+h2, h3 { page-break-after: avoid; }
+pre { page-break-inside: avoid; font-size: 9pt; }
+table { page-break-inside: avoid; font-size: 9pt; }
+a { color: #005A9C; }
 }
 </style>
 </head>
 <body>
 <header id="title-block-header">
-<h1 class="title">P4016R0: Canonical Parallel Reduction — A Fixed
-Expression Structure for Run-To-Run Consistency</h1>
+<h1 class="title">Canonical Parallel Reduction: A Fixed Expression
+Structure for Run-To-Run Consistency</h1>
 </header>
 
 <p><strong>Document:</strong> P4016R0<br />
@@ -263,7 +197,7 @@ Expression Structure for Run-To-Run Consistency</h1>
 <strong>Reply-To:</strong> Andrew Drakeford <a href="mailto:andreedrakeford@hotmail.com" class="email">andreedrakeford@hotmail.com</a><br />
 <strong>Audience:</strong> SG6 (Numerics), LEWG, SG1 (Concurrency), SG14
 (Low Latency/Games/Embedded/Financial Trading)</p>
-<h2>Table of Contents</h2>
+<h2 id="toc-heading">Table of Contents</h2>
 <nav id="TOC" role="doc-toc">
 <ul>
 <li><a href="#abstract" id="toc-abstract">Abstract</a></li>
@@ -616,7 +550,6 @@ cost</a></li>
 Q: Historical Note on Span-Based Topology (Informative)</a></li>
 </ul>
 </nav>
-<hr/>
 <h2 id="abstract">Abstract</h2>
 <p>C++ today offers two endpoints for reduction:</p>
 <ul>
@@ -685,8 +618,8 @@ coordinate in this revision.</p>
 <h2 id="executive-overview">0. Executive Overview</h2>
 <p>There is a hole in the C++ Standard Library. Sequential reductions
 (<code>std::accumulate</code>) have a fully specified evaluation order —
-and are therefore deterministic — but cannot be parallelised. Parallel
-reductions (<code>std::reduce</code>) can be parallelised but leave the
+and are therefore deterministic — but cannot be parallelized. Parallel
+reductions (<code>std::reduce</code>) can be parallelized but leave the
 expression unspecified: for non-associative operations such as
 floating-point addition, both the order in which operands are combined
 and how they are grouped (parenthesized) may produce different
@@ -711,7 +644,7 @@ expression structure only. No changes to existing algorithms are
 proposed in this revision.</p>
 <p><strong>What this paper adds</strong></p>
 <ul>
-<li>Fixed abstract expression for parallel reduction, parameterised by
+<li>Fixed abstract expression for parallel reduction, parameterized by
 lane count <code>L</code>.</li>
 <li>Two-stage semantic structure: per-lane tree + cross-lane tree.</li>
 <li>Execution remains unconstrained; only the expression is
@@ -729,7 +662,7 @@ specified.</li>
 in C++ Reduction Facilities</h2>
 <p>The table in §1.1 classifies existing reduction facilities by
 expression ownership — whether the Standard fully specifies the abstract
-expression, or leaves it (partially or wholly) unspecified. The proposed
+expression or leaves it (partially or wholly) unspecified. The proposed
 canonical reduction completes the family by providing a specified
 expression that admits parallel evaluation.</p>
 <p>[<em>Note:</em> In this paper, <strong>canonical</strong> refers
@@ -883,13 +816,13 @@ view, or range adaptor can remove that permission. A library-external
 <code>tree_reduce</code> built on raw loops would lack composition with
 execution policies, senders/receivers, and ranges — and each framework
 (Kokkos, TBB, CUB) that provides its own solution does so with
-incompatible semantics. Standardisation provides a single portable
+incompatible semantics. Standardization provides a single portable
 semantic foundation that library and framework authors can target.</p>
 <p><strong>Heterogeneous execution.</strong> Modern C++ programs
 increasingly execute on heterogeneous platforms — CPU threads, GPU
 kernels, and accelerators within a single application. The
 sender/receiver model (P2300) enables scheduling work to different
-executors, but without a standardised expression structure, the same
+executors, but without a standardized expression structure, the same
 reduction dispatched to different devices may produce different results
 simply because each executor chooses a different grouping. By fixing the
 abstract expression in the standard, a conforming reduction produces the
@@ -927,16 +860,16 @@ consistency domain (fixed input order, fixed topology coordinate
 still permitting parallel execution.</p>
 <p>Appendix K.3.1 provides a cancellation‑heavy dataset in which
 <code>std::reduce</code> exhibits run‑to‑run variability while the
-canonical reduction remains stable for fixed <code>L</code>, and in
-which varying <code>L</code> intentionally yields different results
+canonical reduction stays stable for fixed <code>L</code>, and in which
+varying <code>L</code> intentionally yields different results
 (confirming that topology selection is semantic, not a hint).</p>
 <h3 id="determinism-via-expression-ownership-in-existing-practice">1.3
 Determinism via Expression Ownership in Existing Practice</h3>
 <p><code>std::accumulate</code> is the clearest precedent. Its
 specification mandates a left‑to‑right fold, fully determining the
-abstract expression. As a consequence, implementations are not permitted
-to reassociate operations, even when the supplied <code>binary_op</code>
-is non‑associative. This guarantee is structural, not numerical: the
+abstract expression. Consequently, implementations are not permitted to
+reassociate operations, even when the supplied <code>binary_op</code> is
+non‑associative. This guarantee is structural, not numerical: the
 Standard does not promise bitwise identity across platforms or builds,
 but it does fully specify the expression being evaluated.</p>
 <p>This proposal applies the same structural technique to parallel
@@ -947,7 +880,7 @@ parallel evaluation. Appendix D analyzes the
 <p>This paper proposes <strong>semantics only</strong>. It seeks LEWG
 validation of the fixed expression structure defined in §4 before
 committing to API design. This proposal introduces no new requirements
-on <code>binary_op</code> beyond invocability and convertibility, and
+on <code>binary_op</code> beyond invocability and convertibility and
 does not modify existing algorithms.</p>
 <p>This facility differs from <code>std::reduce</code> composed with an
 execution policy: <code>std::reduce</code> deliberately leaves the
@@ -977,7 +910,7 @@ abstract expression)</li>
 <li>Invariance guarantees (§5)</li>
 <li>Rationale for design choices</li>
 </ul>
-<p><strong>Deferred to subsequent revision (pending LEWG
+<p><strong>Deferred to later revision (pending LEWG
 direction):</strong></p>
 <ul>
 <li>API surface (new algorithm vs execution policy vs both)</li>
@@ -1019,7 +952,7 @@ acceptable.</p>
 sizing requirements (informative)</h3>
 <p>Evaluation of the canonical expression requires a well-defined
 <code>N</code> (the number of elements in the input range). The
-iterative pairwise algorithm is single-pass, but the normative
+iterative pairwise algorithm is single pass, but the normative
 definition (§4) is stated in terms of <code>K = ceil(N/L)</code>, so the
 specification as written requires <code>N</code> to be known. No
 implicit materialization or allocation is performed by the facility.</p>
@@ -1128,7 +1061,7 @@ unspecified.</li>
 <li><strong>Execution</strong> — how evaluation of the expression is
 scheduled: sequentially, in parallel, vectorized, or otherwise.</li>
 </ul>
-<p>The C++ Standard Library already relies on this separation, but does
+<p>The C++ Standard Library already relies on this separation but does
 not articulate it explicitly. As a result, expression structure is
 routinely conflated with execution strategy, producing persistent
 confusion.</p>
@@ -1144,7 +1077,7 @@ expression structure. It defines a <em>generalized sum</em>, permitting
 reassociation to enable scalable execution.</li>
 <li>Execution policies operate exclusively on the execution dimension.
 They constrain scheduling and concurrency, but do not define or refine
-the abstract expression being evaluated. In particular, even
+the abstract expression being evaluated. Even
 <code>execution::seq</code> does not impose a specific grouping or
 forbid reassociation; it affects <em>how</em> an algorithm runs, not
 <em>what</em> expression it computes.</li>
@@ -1162,8 +1095,8 @@ non-semantic with respect to the returned value:</p>
 <li>Policies are designed to <em>relax</em> constraints (permitting
 concurrency, vectorization), not to <em>add</em> new semantic guarantees
 about grouping or parenthesization.</li>
-<li>Policies compose freely and orthogonally. Encoding topology in a
-policy would require dominance rules to resolve conflicts between
+<li>Policies are composed freely and orthogonally. Encoding topology in
+a policy would require dominance rules to resolve conflicts between
 policies that specify different topologies — a semantic hierarchy the
 standard does not have.</li>
 <li><code>std::reduce</code> already proves the limitation:
@@ -1187,7 +1120,7 @@ This proposal makes the abstract expression explicit and assigns
 ownership of it to the algorithm, restoring a clean separation between
 <em>what</em> is computed (expression), <em>what</em> is guaranteed
 (algorithm), and <em>how</em> it is executed (execution policy).</p>
-<p>This separation also clarifies the relationship to executors
+<p>This separation also clarifies the relationship with executors
 (§3.10).</p>
 <h3 id="why-not-left-fold">3.1 Why Not Left-Fold?</h3>
 <p>A strict left-to-right fold has a fixed evaluation order:</p>
@@ -1254,10 +1187,10 @@ status quo problem. For parallel reductions such as
 therefore permits different abstract expressions across implementations
 and settings.</p>
 <p>An implementation-defined topology does not resolve the grouping gap;
-it relocates the source of variation from the algorithm’s reassociation
+it moves the source of variation from the algorithm’s reassociation
 freedom to the implementation’s topology choice. A reproducibility
 facility must standardize the expression structure for a chosen
-topology, rather than leaving that structure implementation-defined.</p>
+topology, rather than leaving that structure implementation defined.</p>
 <h3 id="the-proposed-design">3.5 The proposed design</h3>
 <p>The facility proposed here is defined by a <strong>family of
 canonical expressions</strong> parameterized by a user-selected topology
@@ -1268,7 +1201,7 @@ that expression (as-if), independent of execution strategy.</p>
 defined in terms of the <strong>lane count <code>L</code></strong>. For
 intuition: <code>L = 1</code> degenerates to a single tree over the
 input sequence (no lane interleaving). Larger <code>L</code> introduces
-SIMD/GPU-friendly lane parallelism, but still denotes one
+SIMD/GPU-friendly lane parallelism but still denotes one
 Standard-defined expression fully determined by <code>(N, L)</code>. The
 normative definition of the two-stage reduction (lane partitioning,
 per-lane tree, cross-lane tree) appears in §4.</p>
@@ -1280,7 +1213,7 @@ register filling: a single aligned vector load of <code>L</code>
 consecutive elements places one element into each lane simultaneously.
 Contiguous blocks would require gathering from <code>L</code> distant
 memory locations to fill a register. Additionally, interleaving
-guarantees that all lanes contain the same number of elements (to within
+guarantees that all lanes have the same number of elements (to within
 one), so all lanes execute the same tree shape — enabling SIMD lockstep
 execution without per-lane branching. This uniform tree shape across
 lanes is what makes the two-stage decomposition (§4.4) efficient in
@@ -1349,7 +1282,7 @@ kernels</td>
 </table>
 <h4 id="references-informative">3.6.2 References (informative)</h4>
 <p><strong>Intel oneMKL CNR:</strong> Intel documents that parallel
-algorithms can produce different results based on thread counts and ISA,
+algorithms can produce different results based on thread counts and ISA
 and provides CNR modes to constrain execution paths. See: Intel oneMKL
 Developer Guide, “Introduction to Conditional Numerical Reproducibility”
 [IntelCNR].</p>
@@ -1359,7 +1292,7 @@ fixed-order reduction. See: NVIDIA CUB API Documentation
 [NvidiaCUB].</p>
 <p>These libraries address reproducibility through different mechanisms
 and with different scope. This proposal does not claim to replicate
-their exact guarantees, but draws on the same insight: fixing the
+their exact guarantees but draws on the same insight: fixing the
 computation structure is a useful building block for
 reproducibility.</p>
 <h4 id="conclusion">3.6.3 Conclusion</h4>
@@ -1435,7 +1368,7 @@ remapping.</p></li>
 <ol type="1">
 <li><p><strong>Specification clarity:</strong> The recursive definition
 is three lines with no special cases. The iterative definition requires
-explicit handling of odd-count carry logic.</p></li>
+explicit handling of odd count carry logic.</p></li>
 <li><p><strong>Tree symmetry:</strong> For non-power-of-two k, recursive
 bisection produces more balanced subtrees. The “heavier” subtree (with
 more elements) is always on the right, following the
@@ -1496,7 +1429,7 @@ and recursive bisection is a <em>batch</em> algorithm.</p>
 <p>Recursive bisection’s first operation is to compute a midpoint:
 <code>mid = N/2</code>. The entire split tree is determined top-down
 from the global sequence length. Evaluation cannot begin until N is
-known, and the split structure depends on a global property of the
+known, and the split structure depends on the global property of the
 input.</p>
 <p>Iterative pairwise (shift-reduce) processes elements incrementally:
 each element is shifted onto an O(log N) stack, and reductions are
@@ -1559,17 +1492,17 @@ incremental delivery of elements does not alter the abstract expression,
 provided that elements are presented in increasing input index
 order.</p>
 <p>These observations describe implementation properties of the
-iterative pairwise formulation. They do not impose additional semantic
+iterative pairwise formulation. They do not impose added semantic
 requirements beyond those stated in §4–§5.</p>
 <h3 id="deferral-of-api-surface">3.9 Deferral of API surface</h3>
 <p>This paper acknowledges the importance of a Ranges-first model in
 modern C++, but the specific API surface (new algorithm, new execution
-policy, or range-based overload) is deliberately deferred to a
-subsequent revision. Expression structure is orthogonal to API surface;
-fixing it first allows API alternatives to be evaluated against a stable
-semantic baseline. Once LEWG reaches consensus on this semantic
-foundation, a follow-on revision can propose an API that aligns with
-modern library patterns.</p>
+policy, or range-based overload) is deliberately deferred to a later
+revision. Expression structure is orthogonal to API surface; fixing it
+first allows API alternatives to be evaluated against a stable semantic
+baseline. Once LEWG reaches consensus on this semantic foundation, a
+follow-on revision can propose an API that aligns with modern library
+patterns.</p>
 <h3 id="relationship-to-executors">3.10 Relationship to Executors</h3>
 <p>The expression/algorithm/execution separation described in §3.0
 aligns naturally with the sender/receiver execution model adopted for
@@ -1593,8 +1526,8 @@ computation is evaluated.</li>
 </ul>
 <p>Different schedulers — CPU thread pool, GPU stream, or distributed
 sender chain — may execute the expression using different physical
-strategies, but they are required to produce the same returned value for
-a fixed expression and floating-point evaluation model.</p>
+strategies, but they must produce the same returned value for a fixed
+expression and floating-point evaluation model.</p>
 <p>In this sense, the proposal is orthogonal and complementary to P2300.
 It does not constrain execution; it enables consistency across
 schedulers when the same canonical expression (fixed <code>L</code>) and
@@ -1634,7 +1567,7 @@ return <code>op(init, R_all)</code>. Otherwise, return
 trailing element, repeat. The tree shape is fully determined by the
 element count. Only the abstract expression structure is specified. When
 evaluated with an execution policy, independent subexpressions may be
-evaluated concurrently or vectorised, provided the returned value
+evaluated concurrently or vectorized, provided the returned value
 matches that of the canonical expression. The remainder of §4 defines
 each component precisely.</p>
 <p>[<em>Note:</em> The semantic contract in §4 is defined in terms of
@@ -1707,7 +1640,7 @@ it does not prescribe an evaluation strategy. However, the iterative
 pairwise formulation can be evaluated efficiently across threads while
 preserving the tree. When each thread processes a power-of-two-sized
 chunk of the input, the shift-reduce process within that chunk collapses
-to a single completed subtree — the minimum possible merge state.
+to a single completed subtree — the smallest possible merge state.
 Adjacent chunk results can then be combined in index order, recovering
 the expression regardless of thread count. A detailed parallel
 realization strategy is described in Appendix N.</p>
@@ -1792,10 +1725,10 @@ an identity element. Absence is a property of the expression geometry
 (they occur only in the ragged tail, §4.3.4). Implementations can
 therefore handle the tail using an epilogue or masking, without
 introducing per-node conditionals in the main reduction.</p>
-<p><em>[Note:* The <code>maybe&lt;A&gt;</code> formalism is a
+<p>[<em>Note:</em> The <code>maybe&lt;A&gt;</code> formalism is a
 specification device analogous to <code>std::optional&lt;A&gt;</code>;
-it is not a proposed API type and implementations need not materialise
-optional objects. *—end note]</em></p>
+it is not a proposed API type and implementations need not materialize
+optional objects. <em>—end note</em>]</p>
 <p>Implementations need not lift <code>binary_op</code> into an optional
 domain. A common strategy is to apply the canonical tree rule over full
 SIMD groups and evaluate any ragged tail using a scalar iterative
@@ -1813,15 +1746,15 @@ expression performs exactly <code>N − 1</code> invocations of
 that complete normally. If evaluation exits via an exception or calls
 <code>std::terminate</code> under a policy-based execution mode, no
 invocation-count guarantee is made.</p>
-<p><em>[Note:* This constraint is normative. An implementation that pads
-absent positions with a value (e.g., an identity element) and applies
-<code>binary_op</code> to the padded operands would produce the same
-returned value for <code>binary_op</code> operations that possess an
-identity, but would invoke <code>binary_op</code> more times than
+<p>[<em>Note:</em> This constraint is normative. An implementation that
+pads absent positions with a value (e.g., an identity element) and
+applies <code>binary_op</code> to the padded operands would produce the
+same returned value for <code>binary_op</code> operations that possess
+an identity but would invoke <code>binary_op</code> more times than
 specified. Such an implementation does not conform to this
 specification, because it violates the invocation count and may produce
-observable differences for stateful <code>binary_op</code>. *—end
-note]</em></p>
+observable differences for stateful <code>binary_op</code>. <em>—end
+note</em>]</p>
 <p><strong>What constitutes an invocation.</strong> An invocation of
 <code>binary_op</code> occurs when and only when it is evaluated with
 two present operands corresponding to nodes of the canonical tree.
@@ -1955,10 +1888,10 @@ induce absent operands at internal combine points as the tree reduces.
 The lifted combine rule handles this uniformly.</p>
 <h3 id="interleaved-topology-canonical.reduce.interleaved">4.3
 Interleaved topology [canonical.reduce.interleaved]</h3>
-<p>Let <code>E[0..N)</code> denote the input elements in iteration
-order, and let <code>X[0..N)</code> denote the corresponding conceptual
-terms of the reduction expression (materialization and the reduction
-state type are defined in §4.6).</p>
+<p>Let <code>E[0..N)</code> denote the input elements in iteration order
+and let <code>X[0..N)</code> denote the corresponding conceptual terms
+of the reduction expression (materialization and the reduction state
+type are defined in §4.6).</p>
 <h4 id="lane-partitioning-by-index-modulo-canonical.reduce.interleaved.partition">4.3.1
 Lane partitioning by index modulo
 [canonical.reduce.interleaved.partition]</h4>
@@ -2018,7 +1951,7 @@ propagate the <code>L − N</code> absent entries without invoking
 <code>CANONICAL_TREE_EVAL</code> applied directly to the <code>N</code>
 input elements. In this regime <code>L</code> has no observable effect
 on the returned value. This is intentional: no diagnostic is required,
-and implementations need not special-case it. In this regime, multiple
+and implementations need not special case it. In this regime, multiple
 lane counts may denote identical abstract expressions; this does not
 affect the determinism guarantee. <em>—end note</em>]</p>
 <h4 id="interleaving-layout-diagrams-informative">4.3.3 Interleaving
@@ -2096,12 +2029,12 @@ the following sequence of evaluations. This two-stage decomposition is a
 definitional structure; conforming implementations may use any execution
 strategy (threading, SIMD, GPU, or otherwise) provided the returned
 value matches that of the specified expression.</p>
-<p><em>[Note:* This paper uses “Stage 1” and “Stage 2” as conceptual
+<p>[<em>Note:</em> This paper uses “Stage 1” and “Stage 2” as conceptual
 labels for the per-lane and cross-lane phases of the canonical
 expression. Future standard wording may adopt different presentational
 conventions (e.g., “steps” or “equivalent to”) per established
 [numerics.ops] practice; the normative content — the specified
-expression — is independent of the labeling. *—end note]</em></p>
+expression — is independent of the labeling. <em>—end note</em>]</p>
 <p>Let <code>L &gt;= 1</code> be the lane count and let <code>op</code>
 denote the supplied <code>binary_op</code>.</p>
 <h4 id="stage-1-per-lane-canonical-reduction-single-tree-shape-canonical.reduce.twostage.perlane">4.4.1
@@ -2191,12 +2124,12 @@ evaluating the corresponding child subexpressions, each of type
 <p>Propagation through an absent operand (§4.2.2) does not create
 additional copies or moves of the present operand; the present value is
 propagated to the parent node unchanged.</p>
-<p><em>[Note:* This is consistent with <code>std::reduce</code>, which
-specifies that <code>binary_op</code> is applied to moved subrange
+<p>[<em>Note:</em> This is consistent with <code>std::reduce</code>,
+which specifies that <code>binary_op</code> is applied to moved subrange
 results. The move semantics ensure that move-only accumulator types are
 supported and that expensive-to-copy types do not incur unnecessary
 overhead. Implementations are free to elide moves where permitted by the
-as-if rule. *—end note]</em></p>
+as-if rule. <em>—end note</em>]</p>
 <h3 id="integration-of-an-initial-value-if-provided-canonical.reduce.init">4.5
 Integration of an initial value (if provided)
 [canonical.reduce.init]</h3>
@@ -2220,7 +2153,7 @@ in a single final application of <code>binary_op</code> ensures that the
 tree shape is independent of whether an initial value is provided.
 Placing <code>init</code> as the left operand preserves lane-assignment
 invariance under extension of the input sequence and ensures that the
-abstract expression remains stable when additional elements are appended
+abstract expression stays stable when additional elements are appended
 to the range.</p>
 <p>If no initial value is provided and <code>N == 0</code>, the semantic
 result is not defined by this expression structure; the behavior (e.g.,
@@ -2228,7 +2161,7 @@ yielding a default-constructed <code>A{}</code>, or rendering the call
 ill-formed) is deferred to the API specification.</p>
 <p>Appending additional elements to the input sequence does not change
 the abstract expression for the original elements under this rule. The
-left-placement of <code>init</code> preserves this stability property
+left placement of <code>init</code> preserves this stability property
 for non-associative operations.</p>
 <p>Treating <code>init</code> as an input element would change the lane
 assignment of all subsequent elements and therefore alter the abstract
@@ -2255,7 +2188,7 @@ init is not interleaved into lanes and is combined once with the overall result.
 
 This proposal:
   init op ( fixed canonical tree expression over X0..XN-1 )</code></pre>
-<p><em>[Note:* This differs structurally from
+<p>[<em>Note:</em> This differs structurally from
 <code>std::accumulate</code>, where <code>init</code> is the leftmost
 operand of a left-fold and participates in every step of the evaluation.
 In this proposal, <code>init</code> is applied exactly once, as the left
@@ -2267,7 +2200,7 @@ operand to the completed tree result. While both conventions place
 This is an intentional design choice (see Appendix E for rationale):
 integrating <code>init</code> into the tree would alter the tree shape
 and break the independence of the expression from the presence or
-absence of an initial value. *—end note]</em></p>
+absence of an initial value. <em>—end note</em>]</p>
 <h3 id="materialization-of-conceptual-terms-and-reduction-state-introducing-v-and-a-canonical.reduce.types">4.6
 Materialization of conceptual terms and reduction state (introducing V
 and A) [canonical.reduce.types]</h3>
@@ -2440,7 +2373,7 @@ but the semantic contract does not depend on <code>std::simd</code>.</p>
 <p><strong>Relationship to P0350 (Integrating simd with parallel
 algorithms):</strong> Kretz’s P0350 [P0350R4] proposes an
 <code>execution::simd</code> policy that processes data in SIMD-width
-chunks, parameterised by a width. A natural question is whether the
+chunks, parameterized by a width. A natural question is whether the
 facility proposed here could be decomposed into a tree-structured
 algorithm composed with a SIMD execution policy whose width parameter
 supplies this proposal’s lane count L.</p>
@@ -2602,15 +2535,16 @@ reduction.</p>
 </tr>
 </tbody>
 </table>
-<p><em>[Note:* “Unique expression” means the standard fully specifies a
-single abstract expression — one parenthesization and one operand
-ordering of <code>binary_op</code> applications. <code>accumulate</code>
-specifies a unique left fold. The proposed <code>canonical_reduce</code>
-specifies a unique canonical tree for a given lane count L. Scan and
-reduce each admit multiple conforming abstract expressions; an
-implementation may choose any member of that set. For non-associative
-operations (e.g., floating-point addition), different members of the set
-may yield different results. *—end note]</em></p>
+<p>[<em>Note:</em> “Unique expression” means the standard fully
+specifies a single abstract expression — one parenthesization and one
+operand ordering of <code>binary_op</code> applications.
+<code>accumulate</code> specifies a unique left fold. The proposed
+<code>canonical_reduce</code> specifies a unique canonical tree for a
+given lane count L. Scan and reduce each admit multiple conforming
+abstract expressions; an implementation may choose any member of that
+set. For non-associative operations (e.g., floating-point addition),
+different members of the set may yield different results. <em>—end
+note</em>]</p>
 <p>[<em>Note:</em> This paper uses
 <code>canonical_reduce&lt;L&gt;(...)</code> as the illustrative
 spelling, reflecting that lane count <code>L</code> is the semantic
@@ -2648,7 +2582,7 @@ semantic contract before committing to an API surface.</p>
 <p>A foundational design constraint is that the semantic topology
 parameter is the lane count <code>L</code>. Any API surface must expose
 <code>L</code> explicitly to ensure that the user’s chosen abstract
-expression remains stable across different compilers, operating systems,
+expression stays stable across different compilers, operating systems,
 and architectures.</p>
 <p>Two primary approaches exist.</p>
 <h3 id="new-algorithm-approach-illustrative">9.1 New Algorithm Approach
@@ -2678,9 +2612,9 @@ implementation detail or an execution hint.</p>
 <h3 id="rationale-why-lane-count-l-is-the-sole-coordinate-the-portability-trap">9.2
 Rationale: Why Lane Count (L) is the Sole Coordinate (The Portability
 Trap)</h3>
-<p>Earlier explorations of this facility considered offering an
-additional “numerics convenience” parameter <code>M</code> (representing
-a span in bytes), where the algorithm would derive the lane count via
+<p>Earlier explorations of this facility considered offering an added
+“numerics convenience” parameter <code>M</code> (representing a span in
+bytes), where the algorithm would derive the lane count via
 <code>L = M / sizeof(value_type)</code>.</p>
 <p>This paper explicitly rejects a byte-span (<code>M</code>) API due to
 the portability trap it creates.</p>
@@ -2858,7 +2792,7 @@ practice.</li>
 <li>We are asking LEWG to approve the <strong>fixed expression contract
 in §4</strong> (canonical reduction expression) as a semantic building
 block: implementations may schedule using threads/SIMD/work-stealing/GPU
-kernels, but must return the value <strong>as-if evaluating the
+kernels but must return the value <strong>as-if evaluating the
 standard-fixed expression</strong>.</li>
 <li>We intend the canonical expression to have <strong>O(N)</strong>
 applications of <code>binary_op</code> (accounting for carry/propagation
@@ -2870,14 +2804,14 @@ and <strong>constraints/range categories</strong> aligned with
 <code>std::reduce</code> and execution-policy requirements.</li>
 </ul>
 <h2 id="polls-for-lewg-direction">11. Polls for LEWG Direction</h2>
-<p><em>[Note:* The polls below are written for LEWG review. When
+<p>[<em>Note:</em> The polls below are written for LEWG review. When
 presented to SG6, the chair may rephrase polls to focus on
 numerics-specific concerns — for example, whether the canonical tree
 structure is appropriate for floating-point error analysis, whether the
 lane count parameter is a suitable topology coordinate for numerical
 reproducibility, and whether the
 <code>GENERALIZED_NONCOMMUTATIVE_SUM</code>/<code>GENERALIZED_SUM</code>
-distinction is correctly handled. *—end note]</em></p>
+distinction is correctly handled. <em>—end note</em>]</p>
 <p><em>Vote categories for all Favor/Against polls:</em>
 <strong>Strongly Favor / Weakly Favor / Neutral / Weakly Against /
 Strongly Against</strong></p>
@@ -2904,10 +2838,10 @@ facility should define a single fixed abstract expression for a given
 input order and topology coordinate, and that the two-stage semantic
 structure in §4 (interleaved lane partition, per-lane canonical tree,
 cross-lane canonical tree) is a suitable framework for this contract.
-Implementations may execute using threads/SIMD/work-stealing/GPU
-kernels, but must produce results as-if evaluating the specified
-expression. (This poll validates the semantic framework; the specific
-tree shape is polled separately in Poll 2A.)</p>
+Implementations may execute using threads/SIMD/work-stealing/GPU kernels
+but must produce results as-if evaluating the specified expression.
+(This poll validates the semantic framework; the specific tree shape is
+polled separately in Poll 2A.)</p>
 <p>[<em>Note:</em> Init placement is specified in §4.5; if desired, LEWG
 can poll init placement separately. <em>—end note</em>]</p>
 <p><strong>Vote:</strong> Strongly Favor / Weakly Favor / Neutral /
@@ -3084,17 +3018,17 @@ coordinate. The canonical expression is fully determined by
 <span id="cb31-7"><a href="#cb31-7" aria-hidden="true" tabindex="-1"></a>T canonical_reduce<span class="op">(</span>ExecutionPolicy<span class="op">&amp;&amp;</span> policy<span class="op">,</span></span>
 <span id="cb31-8"><a href="#cb31-8" aria-hidden="true" tabindex="-1"></a>            ForwardIterator first<span class="op">,</span> ForwardIterator last<span class="op">,</span> T init<span class="op">,</span></span>
 <span id="cb31-9"><a href="#cb31-9" aria-hidden="true" tabindex="-1"></a>            BinaryOperation binary_op<span class="op">);</span></span></code></pre></div>
-<p><em>[Note:* The illustrative wording marks the non-policy overloads
-<code>constexpr</code>. The canonical expression is a pure functional
-specification with no dependence on runtime state — it is structurally
-amenable to constant evaluation. The tree evaluation consists of a
-finite sequence of <code>binary_op</code> applications in a statically
-determined order, which is compatible with constexpr evaluation provided
-<code>binary_op</code> is itself constexpr. Full constexpr feasibility
-depends on whether the API ultimately uses iterators (which have
-constexpr limitations for some container types) or ranges. Detailed
-constexpr specification is deferred to the API design paper. *—end
-note]</em></p>
+<p>[<em>Note:</em> The illustrative wording marks the non-policy
+overloads <code>constexpr</code>. The canonical expression is a pure
+functional specification with no dependence on runtime state — it is
+structurally amenable to constant evaluation. The tree evaluation
+consists of a finite sequence of <code>binary_op</code> applications in
+a statically determined order, which is compatible with constexpr
+evaluation provided <code>binary_op</code> is itself constexpr. Full
+constexpr feasibility depends on whether the API ultimately uses
+iterators (which have constexpr limitations for some container types) or
+ranges. Detailed constexpr specification is deferred to the API design
+paper. <em>—end note</em>]</p>
 <p><strong>Constraints:</strong> - For overloads with an
 ExecutionPolicy, ForwardIterator meets the Cpp17ForwardIterator
 requirements.</p>
@@ -3146,14 +3080,14 @@ is as-if evaluation of the canonical expression (since <code>∅</code>
 does not induce applications of <code>binary_op</code>).</p>
 <h2 id="appendix-b-implementation-guidance-informative">Appendix B:
 Implementation Guidance (Informative)</h2>
-<p>This appendix provides detailed guidance for implementers. It is
+<p>This appendix offers detailed guidance for implementers. It is
 informative only; the normative specification is the canonical
 expression defined in §4.</p>
 <p><strong>General principle:</strong> Implementations need not
 instantiate lanes for empty subsequences; only the logical reduction
 order must be preserved. For example, if L = 1000 but N = 5, the
 implementation need not allocate 1000 accumulators — only the 5
-non-empty subsequences participate in the final reduction.</p>
+non-empty subsequences take part in the final reduction.</p>
 <h3 id="b.1-two-degrees-of-parallelism">B.1 Two Degrees of
 Parallelism</h3>
 <p>Real implementations exploit two orthogonal forms of parallelism:</p>
@@ -3734,7 +3668,7 @@ assigned to lane 0, changing topology when L &gt; 1 - Complicates the
 interleaving definition</p>
 <p><strong>Option D: Leave implementation-defined</strong></p>
 <p>The standard specifies that init participates in exactly one
-<code>binary_op</code> application with the tree result, but does not
+<code>binary_op</code> application with the tree result but does not
 specify the order.</p>
 <p><strong>Pros:</strong> - Maximum implementation flexibility - Avoids
 contentious design decision - For associative operations (the common
@@ -3875,9 +3809,9 @@ mechanisms. Their existence suggests the design space is viable and
 addresses real needs. See §3.6 for references.</p>
 <h2 id="appendix-g-detailed-design-rationale-informative">Appendix G:
 Detailed Design Rationale (Informative)</h2>
-<p>This appendix contains detailed rationale for design decisions that
-were summarized in Section 4. It is provided for reviewers seeking
-deeper understanding of the trade-offs.</p>
+<p>This appendix has detailed rationale for design decisions that were
+summarized in Section 4. It is provided for reviewers seeking deeper
+understanding of the trade-offs.</p>
 <h3 id="g.1-lane-count-and-hardware-alignment">G.1 Lane Count and
 Hardware Alignment</h3>
 <p>The lane count <code>L</code> is specified directly, making the
@@ -4042,7 +3976,7 @@ regardless of <code>sizeof(value_type)</code>.</p>
 <h3 id="i.1-rationale-for-l-16-narrow-preset">I.1 Rationale for L = 16
 (Narrow Preset)</h3>
 <p>A “narrow” preset should provide useful parallelism for the most
-common scalar sizes while remaining small enough that overhead does not
+common scalar sizes while staying small enough that overhead does not
 dominate for moderate N.</p>
 <p>L = 16 is a practical coordination point because: - It matches
 AVX-512 lane count for <code>float</code> (16 × 4 bytes = 64 bytes = one
@@ -4051,7 +3985,7 @@ ZMM register). - It provides 2× AVX-512 width for <code>double</code>
 standard SIMD optimization pattern. - It is a power of two, ensuring the
 per-lane tree is perfectly balanced for power-of-two K values. - It is
 wide enough for meaningful instruction-level parallelism on all current
-architectures, yet narrow enough that the cross-lane Stage 2 tree is
+architectures yet narrow enough that the cross-lane Stage 2 tree is
 shallow (4 levels).</p>
 <h3 id="i.2-rationale-for-l-128-wide-preset">I.2 Rationale for L = 128
 (Wide Preset)</h3>
@@ -4060,7 +3994,7 @@ structures and heterogeneous verification workflows.</p>
 <p>L = 128 provides substantial independent work per lane and can
 support aggressive batching and parallel evaluation of independent
 reduction nodes while preserving the same abstract expression. It
-accommodates GPU warp widths (32) with room for multi-warp cooperation,
+accommodates GPU warp widths (32) with room for multi-warp cooperation
 and enables deeply unrolled SIMD loops on CPU.</p>
 <h3 id="i.3-cross-domain-verification">I.3 Cross-Domain
 Verification</h3>
@@ -4089,7 +4023,7 @@ surfaces are deferred to the follow-on API paper.</p>
 <code>L</code>. - The lane count <code>L</code> is the sole semantic
 topology coordinate. The canonical expression is fully determined by
 <code>(N, L)</code>. - When cross-platform expression stability is
-required, <code>L</code> must be specified directly (not derived from
+needed, <code>L</code> must be specified directly (not derived from
 hardware properties).</p>
 <h3 id="j.1-design-goal">J.1 Design goal</h3>
 <ul>
@@ -4247,11 +4181,11 @@ the authoritative numbers.</p>
 <h3 id="k.1-demonstrator-set-gross-platform-runs">K.1 Demonstrator set
 (gross platform runs)</h3>
 <p>The following Compiler Explorer (“Godbolt”) demonstrators are
-intended to be click-run-inspect artifacts for reviewers. Each link
-contains: - a determinism/verification block (seed, N, and printed
-result hex), - run-to-run stability checks, - a coarse timing table
-comparing against <code>std::accumulate</code> and
-<code>std::reduce</code> variants under comparable FP settings.</p>
+intended to be click-run-inspect artifacts for reviewers. Each link has:
+- a determinism/verification block (seed, N, and printed result hex), -
+run-to-run stability checks, - a coarse timing table comparing against
+<code>std::accumulate</code> and <code>std::reduce</code> variants under
+comparable FP settings.</p>
 <table>
 <colgroup>
 <col style="width: 21%" />
@@ -4398,7 +4332,7 @@ are configured to print the following expected result hex values:</p>
 Cancellation stress dataset (recommended)</h3>
 <p>The PRNG dataset validates implementation correctness but may not
 demonstrate <em>why</em> canonical reduction matters. Uniform random
-values of similar magnitude can produce nearly identical results under
+values of similar size can produce nearly identical results under
 different tree shapes, making the golden match appear trivially
 achievable.</p>
 <p>To demonstrate the facility’s core value proposition, demonstrators
@@ -4800,9 +4734,9 @@ is the largest integer such that B / 2^k ≥ T:</p>
 <span id="cb63-3"><a href="#cb63-3" aria-hidden="true" tabindex="-1"></a>    <span class="dt">size_t</span> k <span class="op">=</span> bit_width<span class="op">(</span>num_blocks <span class="op">/</span> T<span class="op">)</span> <span class="op">-</span> <span class="dv">1</span><span class="op">;</span></span>
 <span id="cb63-4"><a href="#cb63-4" aria-hidden="true" tabindex="-1"></a>    <span class="cf">return</span> <span class="dt">size_t</span><span class="op">{</span><span class="dv">1</span><span class="op">}</span> <span class="op">&lt;&lt;</span> k<span class="op">;</span></span>
 <span id="cb63-5"><a href="#cb63-5" aria-hidden="true" tabindex="-1"></a><span class="op">}</span></span></code></pre></div>
-<p>This yields ceil(B / C) chunks, each containing C blocks (except
-possibly the last). Thread t processes chunks assigned to it, producing
-a local stack state for each.</p>
+<p>This yields ceil(B / C) chunks, each having C blocks (except possibly
+the last). Thread t processes chunks assigned to it, producing a local
+stack state for each.</p>
 <p><strong>Example:</strong> For B = 1000 blocks and T = 4 threads, C =
 256 (2^8):</p>
 <table>
@@ -5102,7 +5036,7 @@ register-level temporaries for the carry chain.</p>
 structure</li>
 <li>8-block SIMD unrolling amortizes stack overhead</li>
 </ol>
-<p>This demonstrates that a fixed evaluation order is compatible with
+<p>This shows that a fixed evaluation order is compatible with
 high-throughput SIMD execution. The constraint of a canonical tree
 enables aggressive unrolling and predictable memory access, achieving
 throughput comparable to unconstrained implementations in the tested
@@ -5139,7 +5073,7 @@ identical abstract expressions.</p>
 <h3 id="o.3-differences-on-non-power-of-two-sizes">O.3 Differences on
 non-power-of-two sizes</h3>
 <p>For non-power-of-two <code>k</code>, the trees differ in structure
-(but maintain the same asymptotic depth bounds).</p>
+(but keep the same asymptotic depth bounds).</p>
 <p>Example (<code>k = 5</code>), writing <code>+</code> for
 <code>op</code>:</p>
 <ul>
@@ -5164,7 +5098,7 @@ corresponds directly to SIMD-lane and warp-lane pairing operations.</li>
 <li><strong>Adoption continuity:</strong> existing deterministic
 implementations can conform without structural change.</li>
 <li><strong>Specification focus:</strong> once a single canonical tree
-is selected, retaining alternatives in the normative contract increases
+is selected, keeping alternatives in the normative contract increases
 complexity without adding semantic value.</li>
 </ul>
 <p>No other grouping is permitted.</p>
@@ -5183,8 +5117,8 @@ mapping for small sub-problems (e.g., a flat switch for N ≤ 32
 eliminates recursive call overhead), and unaligned SIMD loads on
 contemporary microarchitectures are essentially free when data does not
 cross a cache line boundary — reducing the alignment advantage that
-earlier analyses relied on [Dalton2014]. The iterative formulation
-retains structural advantages (loop-based with a branchless bit-test for
+earlier analyses relied on [Dalton2014]. The iterative formulation keeps
+structural advantages (loop-based with a branchless bit-test for
 reduction, natural streaming order), but these translate to modest
 rather than dramatic throughput differences against a well-engineered
 recursive implementation.</p>
@@ -5221,7 +5155,7 @@ implementations.</p>
 O(log N · ε) error bound [Higham2002]. No alternative tree can improve
 the asymptotic accuracy. On the throughput side, iterative pairwise
 already achieves 89% of the theoretical peak [Dalton2014]. Even if a
-superior tree shape were discovered in the future, the maximum possible
+superior tree shape were discovered in the future, the largest possible
 throughput improvement over IPR is bounded at approximately 11%, with
 identical error bounds.</p>
 <h3 id="p.4-measured-throughput-cost">P.4 Measured throughput cost</h3>
@@ -5235,19 +5169,18 @@ best-tuned compensated sums (Kahan-Babuška).</p>
 <p>The more telling comparison is against the current deterministic
 baseline. Today, the only standard facility with a fully specified
 expression is <code>std::accumulate</code>, which is a strict left fold
-with a loop-carried dependency chain. It cannot utilize SIMD
-parallelism: on AVX-512 hardware, a left fold occupies 1 of 8
-<code>double</code> lanes (~12% SIMD utilization) or 1 of 16
-<code>float</code> lanes (~6%). The canonical iterative pairwise tree,
-by contrast, is inherently SIMD-friendly — all lanes active, with
-measured throughput at ~89% of peak. This represents approximately a
-<strong>7× improvement</strong> in the deterministic reduction path for
-<code>double</code> on AVX-512 (and ~14× for <code>float</code>). The
-relevant comparison is not “what throughput is lost relative to
-unconstrained reduction” but “what throughput is gained relative to the
-only specified expression available today
-(<code>std::accumulate</code>).” By that measure, the canonical tree
-recovers nearly all of the available SIMD parallelism.</p>
+with a loop-carried dependency chain. It cannot use SIMD parallelism: on
+AVX-512 hardware, a left fold occupies 1 of 8 <code>double</code> lanes
+(~12% SIMD utilization) or 1 of 16 <code>float</code> lanes (~6%). The
+canonical iterative pairwise tree, by contrast, is inherently
+SIMD-friendly — all lanes active, with measured throughput at ~89% of
+peak. This represents approximately a <strong>7× improvement</strong> in
+the deterministic reduction path for <code>double</code> on AVX-512 (and
+~14× for <code>float</code>). The relevant comparison is not “what
+throughput is lost relative to unconstrained reduction” but “what
+throughput is gained relative to the only specified expression available
+today (<code>std::accumulate</code>).” By that measure, the canonical
+tree recovers nearly all of the available SIMD parallelism.</p>
 <p>The throughput and regret analyses above establish that neither
 candidate has a decisive performance advantage. The distinguishing
 property is architectural: iterative pairwise is the only common
