@@ -19,9 +19,9 @@ The proposal closes the gap between `std::accumulate` (deterministic but sequent
 
 | Format | Link |
 |--------|------|
-| **HTML** | [p4016r0.html](https://andyD123.github.io/canonical-reduce/p4016r0.html) |
-| **PDF** | [p4016r0.pdf](p4016r0.pdf) |
-| **Markdown source** | [p4016r0.md](p4016r0.md) |
+| **HTML** | [P4016R0.html](https://andyD123.github.io/canonical-reduce/P4016R0.html) |
+| **PDF** | [P4016R0.pdf](P4016R0.pdf) |
+| **Markdown source** | [P4016R0.md](P4016R0.md) |
 
 ## Key Design Points
 
@@ -53,7 +53,7 @@ Working implementations with Compiler Explorer links are documented in Appendix 
 Requires [pandoc](https://pandoc.org) and Python 3.
 
 ```bash
-make p4016r0.html
+make P4016R0.html
 ```
 
 ## License
