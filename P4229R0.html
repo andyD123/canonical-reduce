@@ -1,0 +1,2038 @@
+<!DOCTYPE html>
+<html xmlns="http://www.w3.org/1999/xhtml" lang xml:lang>
+<head>
+  <meta charset="utf-8" />
+  <meta name="generator" content="pandoc" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes" />
+  <title>Canonical Parallel Scan: Expression and Observation Contracts for Reproducible Parallel Algorithms</title>
+  <style>
+code{white-space: pre-wrap;}
+span.smallcaps{font-variant: small-caps;}
+div.columns{display: flex; gap: min(4vw, 1.5em);}
+div.column{flex: auto; overflow-x: auto;}
+div.hanging-indent{margin-left: 1.5em; text-indent: -1.5em;}
+
+ul.task-list[class]{list-style: none;}
+ul.task-list li input[type="checkbox"] {
+font-size: inherit;
+width: 0.8em;
+margin: 0 0.8em 0.2em -1.6em;
+vertical-align: middle;
+}
+.display.math{display: block; text-align: center; margin: 0.5rem auto;}
+
+pre > code.sourceCode { white-space: pre; position: relative; }
+pre > code.sourceCode > span { line-height: 1.25; }
+pre > code.sourceCode > span:empty { height: 1.2em; }
+.sourceCode { overflow: visible; }
+code.sourceCode > span { color: inherit; text-decoration: inherit; }
+div.sourceCode { margin: 1em 0; }
+pre.sourceCode { margin: 0; }
+@media screen {
+div.sourceCode { overflow: auto; }
+}
+@media print {
+pre > code.sourceCode { white-space: pre-wrap; }
+pre > code.sourceCode > span { text-indent: -5em; padding-left: 5em; }
+}
+pre.numberSource code
+{ counter-reset: source-line 0; }
+pre.numberSource code > span
+{ position: relative; left: -4em; counter-increment: source-line; }
+pre.numberSource code > span > a:first-child::before
+{ content: counter(source-line);
+position: relative; left: -1em; text-align: right; vertical-align: baseline;
+border: none; display: inline-block;
+-webkit-touch-callout: none; -webkit-user-select: none;
+-khtml-user-select: none; -moz-user-select: none;
+-ms-user-select: none; user-select: none;
+padding: 0 4px; width: 4em;
+color: #aaaaaa;
+}
+pre.numberSource { margin-left: 3em; border-left: 1px solid #aaaaaa; padding-left: 4px; }
+div.sourceCode
+{ }
+@media screen {
+pre > code.sourceCode > span > a:first-child::before { text-decoration: underline; }
+}
+code span.al { color: #ff0000; font-weight: bold; } 
+code span.an { color: #60a0b0; font-weight: bold; font-style: italic; } 
+code span.at { color: #7d9029; } 
+code span.bn { color: #40a070; } 
+code span.bu { color: #008000; } 
+code span.cf { color: #007020; font-weight: bold; } 
+code span.ch { color: #4070a0; } 
+code span.cn { color: #880000; } 
+code span.co { color: #60a0b0; font-style: italic; } 
+code span.cv { color: #60a0b0; font-weight: bold; font-style: italic; } 
+code span.do { color: #ba2121; font-style: italic; } 
+code span.dt { color: #902000; } 
+code span.dv { color: #40a070; } 
+code span.er { color: #ff0000; font-weight: bold; } 
+code span.ex { } 
+code span.fl { color: #40a070; } 
+code span.fu { color: #06287e; } 
+code span.im { color: #008000; font-weight: bold; } 
+code span.in { color: #60a0b0; font-weight: bold; font-style: italic; } 
+code span.kw { color: #007020; font-weight: bold; } 
+code span.op { color: #666666; } 
+code span.ot { color: #007020; } 
+code span.pp { color: #bc7a00; } 
+code span.sc { color: #4070a0; } 
+code span.ss { color: #bb6688; } 
+code span.st { color: #4070a0; } 
+code span.va { color: #19177c; } 
+code span.vs { color: #4070a0; } 
+code span.wa { color: #60a0b0; font-weight: bold; font-style: italic; } 
+</style>
+</head>
+<body>
+<header id="title-block-header">
+<h1 class="title">Canonical Parallel Scan: Expression and Observation
+Contracts for Reproducible Parallel Algorithms</h1>
+</header>
+<table>
+<colgroup>
+<col style="width: 50%" />
+<col style="width: 50%" />
+</colgroup>
+<tbody>
+<tr class="odd">
+<td>Document number:</td>
+<td>P4229R0</td>
+</tr>
+<tr class="even">
+<td>Date:</td>
+<td>2026-05-12</td>
+</tr>
+<tr class="odd">
+<td>Audience:</td>
+<td>SG6, SG1, LEWG</td>
+</tr>
+<tr class="even">
+<td>Author:</td>
+<td>Andrew Drakeford</td>
+</tr>
+<tr class="odd">
+<td>Reply-to:</td>
+<td>Andrew Drakeford &lt;andreedrakeford@hotmail.com&gt;</td>
+</tr>
+</tbody>
+</table>
+
+<nav id="TOC" role="doc-toc">
+<ul>
+<li><a href="#abstract" id="toc-abstract">Abstract</a></li>
+<li><a href="#introduction" id="toc-introduction">1. Introduction</a>
+<ul>
+<li><a href="#the-gap-in-existing-scan-facilities" id="toc-the-gap-in-existing-scan-facilities">1.1 The gap in existing
+scan facilities</a></li>
+</ul></li>
+<li><a href="#scopes-of-determinism" id="toc-scopes-of-determinism">2.
+Scopes of determinism</a></li>
+<li><a href="#expression-is-not-execution" id="toc-expression-is-not-execution">3. Expression is not
+execution</a></li>
+<li><a href="#the-accumulate-and-partial_sum-example" id="toc-the-accumulate-and-partial_sum-example">4. The
+<code>accumulate</code> and <code>partial_sum</code> example</a></li>
+<li><a href="#reduce-observes-the-root-scan-observes-prefixes" id="toc-reduce-observes-the-root-scan-observes-prefixes">5. Reduce
+observes the root; scan observes prefixes</a>
+<ul>
+<li><a href="#inclusive-scan-exclusive-scan-and-initialization" id="toc-inclusive-scan-exclusive-scan-and-initialization">5.1 Inclusive
+scan, exclusive scan, and initialization</a></li>
+<li><a href="#returned-values-are-not-necessarily-expression-state" id="toc-returned-values-are-not-necessarily-expression-state">5.2
+Returned values are not necessarily expression state</a></li>
+</ul></li>
+<li><a href="#candidate-expression-structures" id="toc-candidate-expression-structures">6. Candidate expression
+structures</a>
+<ul>
+<li><a href="#left-fold-expression" id="toc-left-fold-expression">6.1
+Left-fold expression</a></li>
+<li><a href="#pairwise-expression" id="toc-pairwise-expression">6.2
+Pairwise expression</a></li>
+<li><a href="#iterated-pairwise-expression" id="toc-iterated-pairwise-expression">6.3 Iterated pairwise
+expression</a></li>
+<li><a href="#blocked-dyadic-expression" id="toc-blocked-dyadic-expression">6.4 Blocked dyadic
+expression</a></li>
+<li><a href="#precise-and-fast-scan-over-a-blocked-expression" id="toc-precise-and-fast-scan-over-a-blocked-expression">6.5 Precise and
+fast scan over a blocked expression</a></li>
+<li><a href="#implementation-defined-deterministic-expression-policies" id="toc-implementation-defined-deterministic-expression-policies">6.6
+Implementation-defined deterministic expression policies</a></li>
+</ul></li>
+<li><a href="#relationship-to-p4016r0" id="toc-relationship-to-p4016r0">7. Relationship to P4016R0</a></li>
+<li><a href="#operational-and-numerical-properties-of-expression-choice" id="toc-operational-and-numerical-properties-of-expression-choice">8.
+Operational and numerical properties of expression choice</a>
+<ul>
+<li><a href="#online-evaluation-bounded-buffering-and-streaming-output" id="toc-online-evaluation-bounded-buffering-and-streaming-output">8.1
+Online evaluation, bounded buffering, and streaming output</a></li>
+<li><a href="#error-properties-as-part-of-documentation" id="toc-error-properties-as-part-of-documentation">8.2 Error properties
+as part of documentation</a></li>
+<li><a href="#accuracy-versus-consistency" id="toc-accuracy-versus-consistency">8.3 Accuracy versus
+consistency</a></li>
+</ul></li>
+<li><a href="#execution-policy-and-scheduling" id="toc-execution-policy-and-scheduling">9. Execution policy and
+scheduling</a></li>
+<li><a href="#standard-wording-direction" id="toc-standard-wording-direction">10. Standard wording
+direction</a></li>
+<li><a href="#informative-implementation-experience" id="toc-informative-implementation-experience">11. Informative
+implementation experience</a></li>
+<li><a href="#design-principles" id="toc-design-principles">12. Design
+principles</a></li>
+<li><a href="#analogy-with-random-number-generation" id="toc-analogy-with-random-number-generation">13. Analogy with
+random-number generation</a></li>
+<li><a href="#non-goals" id="toc-non-goals">14. Non-goals</a></li>
+<li><a href="#questions-for-sg6-and-sg1" id="toc-questions-for-sg6-and-sg1">15. Questions for SG6 and SG1</a>
+<ul>
+<li><a href="#is-the-expression-and-observation-model-the-right-abstraction" id="toc-is-the-expression-and-observation-model-the-right-abstraction">15.1
+Is the expression-and-observation model the right abstraction?</a></li>
+<li><a href="#should-reproducibility-contracts-be-named-and-selectable" id="toc-should-reproducibility-contracts-be-named-and-selectable">15.2
+Should reproducibility contracts be named and selectable?</a></li>
+<li><a href="#which-expression-policies-are-worth-standardizing" id="toc-which-expression-policies-are-worth-standardizing">15.3 Which
+expression policies are worth standardizing?</a></li>
+<li><a href="#should-scanreduce-consistency-be-a-separately-named-property" id="toc-should-scanreduce-consistency-be-a-separately-named-property">15.4
+Should scan/reduce consistency be a separately named property?</a></li>
+<li><a href="#how-should-initialization-be-specified" id="toc-how-should-initialization-be-specified">15.5 How should
+initialization be specified?</a></li>
+<li><a href="#how-should-portable-and-implementation-defined-expressions-be-distinguished" id="toc-how-should-portable-and-implementation-defined-expressions-be-distinguished">15.6
+How should portable and implementation-defined expressions be
+distinguished?</a></li>
+<li><a href="#what-is-the-right-relationship-to-existing-execution-policies" id="toc-what-is-the-right-relationship-to-existing-execution-policies">15.7
+What is the right relationship to existing execution policies?</a></li>
+</ul></li>
+<li><a href="#conclusion" id="toc-conclusion">16. Conclusion</a></li>
+<li><a href="#appendix-a-direct-iterated-pairwise-scan-policy" id="toc-appendix-a-direct-iterated-pairwise-scan-policy">Appendix A:
+Direct Iterated Pairwise Scan Policy</a>
+<ul>
+<li><a href="#a.1-inclusive-iterated-pairwise-scan" id="toc-a.1-inclusive-iterated-pairwise-scan">A.1 Inclusive iterated
+pairwise scan</a></li>
+<li><a href="#a.2-exclusive-iterated-pairwise-scan" id="toc-a.2-exclusive-iterated-pairwise-scan">A.2 Exclusive iterated
+pairwise scan</a></li>
+<li><a href="#a.3-scanreduce-consistency" id="toc-a.3-scanreduce-consistency">A.3 Scan/reduce consistency</a></li>
+<li><a href="#a.4-reference-shift-reduce-construction" id="toc-a.4-reference-shift-reduce-construction">A.4 Reference
+shift-reduce construction</a></li>
+<li><a href="#a.5-ragged-tails-and-absent-operands" id="toc-a.5-ragged-tails-and-absent-operands">A.5 Ragged tails and
+absent operands</a></li>
+<li><a href="#a.6-numerical-properties-for-floating-point-summation" id="toc-a.6-numerical-properties-for-floating-point-summation">A.6
+Numerical properties for floating-point summation</a></li>
+<li><a href="#a.7-limitations-of-the-direct-policy" id="toc-a.7-limitations-of-the-direct-policy">A.7 Limitations of the
+direct policy</a></li>
+</ul></li>
+<li><a href="#appendix-b-implementation-experience" id="toc-appendix-b-implementation-experience">Appendix B: Implementation
+Experience</a>
+<ul>
+<li><a href="#b.1-cpu-simd-experience" id="toc-b.1-cpu-simd-experience">B.1 CPU SIMD experience</a></li>
+<li><a href="#b.2-cuda-scan-as-a-stress-test" id="toc-b.2-cuda-scan-as-a-stress-test">B.2 CUDA scan as a stress
+test</a></li>
+<li><a href="#b.3-readiness-is-not-expression" id="toc-b.3-readiness-is-not-expression">B.3 Readiness is not
+expression</a></li>
+<li><a href="#b.4-owner-publication-and-ready-only-observation" id="toc-b.4-owner-publication-and-ready-only-observation">B.4 Owner
+publication and ready-only observation</a></li>
+<li><a href="#b.5-chunk-level-expressions" id="toc-b.5-chunk-level-expressions">B.5 Chunk-level
+expressions</a></li>
+<li><a href="#b.6-accuracy-consistency-and-throughput" id="toc-b.6-accuracy-consistency-and-throughput">B.6 Accuracy,
+consistency, and throughput</a></li>
+<li><a href="#b.7-correctness-reference" id="toc-b.7-correctness-reference">B.7 Correctness reference</a></li>
+<li><a href="#b.8-measured-cuda-results" id="toc-b.8-measured-cuda-results">B.8 Measured CUDA results</a></li>
+<li><a href="#b.9-lesson-for-the-proposal" id="toc-b.9-lesson-for-the-proposal">B.9 Lesson for the
+proposal</a></li>
+</ul></li>
+<li><a href="#appendix-c-executable-cuda-artifact" id="toc-appendix-c-executable-cuda-artifact">Appendix C: Executable CUDA
+artifact</a></li>
+<li><a href="#appendix-d-executable-cuda-witness-canonical_block_dyadic-expression" id="toc-appendix-d-executable-cuda-witness-canonical_block_dyadic-expression">Appendix
+D: Executable CUDA witness — canonical_block_dyadic expression</a></li>
+<li><a href="#appendix-e-executable-cpu-witnesses-canonical_block_dyadic-expression-on-x86-64-and-aarch64" id="toc-appendix-e-executable-cpu-witnesses-canonical_block_dyadic-expression-on-x86-64-and-aarch64">Appendix
+E: Executable CPU witnesses — canonical_block_dyadic expression on
+x86-64 and AArch64</a></li>
+<li><a href="#appendix-f-cross-platform-expression-reproducibility-witness-same-expression-same-bits-three-platforms" id="toc-appendix-f-cross-platform-expression-reproducibility-witness-same-expression-same-bits-three-platforms">Appendix
+F: Cross-platform expression-reproducibility witness — same expression,
+same bits, three platforms</a></li>
+<li><a href="#references" id="toc-references">References</a></li>
+</ul>
+</nav>
+
+<h2 id="abstract">Abstract</h2>
+<p>Blelloch [Blelloch1990] identifies <code>reduce</code>,
+<code>scan</code>, and <code>transform</code> as core parallel
+primitives. P4016R0 demonstrated that efficient, reproducible reduction
+is achievable using a tree-based abstract expression.</p>
+<p>This paper addresses reproducible <code>scan</code>. The same
+expression model can define reproducible <code>scan</code>, but unlike
+element-wise <code>transform</code>, <code>scan</code> exposes
+cross-element expression structure at every prefix, so reproducibility
+cannot be treated as an implementation detail alone. Implementation
+experience shows that the choice of expression materially affects
+performance, scalability, streamability, accuracy, and hardware
+suitability.</p>
+<p>Reproducibility is a contract specified by an abstract expression.
+Agreement follows from choosing a named expression that defines the
+result. Named abstract expressions provide the missing specification
+layer: selectable reproducibility contracts for parallel
+<code>reduce</code> and <code>scan</code>, each admitting multiple
+conforming implementations.</p>
+<hr />
+<h2 id="introduction">1. Introduction</h2>
+<p>The C++ Standard Library’s parallel algorithms rely on implementation
+freedom for performance. Implementations may split ranges, combine
+partial results, vectorize, use multiple threads, or target accelerator
+hardware. For exact associative operations, this freedom may be
+invisible. For floating-point and other order-sensitive operations, it
+can change the result.</p>
+<p>The issue is not merely non-associativity. That is the symptom. The
+deeper problem is that the expression evaluated by a parallel algorithm
+is usually implicit. Without an explicit expression, users cannot know
+whether results are repeatable, stable under different execution
+choices, or consistent with related algorithms.</p>
+<p>P4016R0 addressed this for <code>reduce</code> by proposing a fixed
+expression structure. <code>scan</code> exposes the next distinction:
+<code>reduce</code> observes one value, while <code>scan</code> returns
+a sequence of prefix values. Relating reproducible <code>reduce</code>
+and <code>scan</code> therefore requires specifying both what expression
+defines the values and which values of that expression are returned.</p>
+<p>This paper separates three concerns: execution freedom, expression
+contract, and observation contract. Existing wording gives
+implementations broad freedom in the first. P4016R0 addressed the second
+for reduction. A reproducible <code>scan</code> requires the third.</p>
+<p>The implementation artifacts in the appendices are proof by
+existence. They show that the model is executable, that scan/reduce
+bit-consistency can be achieved, and that cross-platform bitwise
+reproducibility — including cross-platform scan/reduce consistency — is
+possible under constrained floating-point evaluation rules. They are
+evidence for feasibility, not proposed algorithms or proposed
+wording.</p>
+<h3 id="the-gap-in-existing-scan-facilities">1.1 The gap in existing
+scan facilities</h3>
+<p>The standard definitions of <code>inclusive_scan</code> and
+<code>exclusive_scan</code> preserve the left-to-right order of
+operands, but permit different parenthesizations. For associative
+operations this distinction is usually unobservable. For floating-point
+addition and other order-sensitive operations, however, different
+conforming parenthesizations may produce different results.</p>
+<p>A reproducible scan therefore requires more than a stable traversal
+order: it requires a specified expression for each observed prefix.</p>
+<p>This is the relevant distinction among the existing facilities:</p>
+<p>All rows preserve left-to-right operand order; the relevant
+distinction is parenthesization and whether the expression contract is
+named.</p>
+<table>
+<thead>
+<tr class="header">
+<th>Facility</th>
+<th>Parenthesization</th>
+<th>Named expression contract?</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td><code>std::partial_sum</code></td>
+<td>left fold</td>
+<td>effectively fixed</td>
+</tr>
+<tr class="even">
+<td><code>std::inclusive_scan</code></td>
+<td>not fixed as a named expression</td>
+<td>no</td>
+</tr>
+<tr class="odd">
+<td><code>std::exclusive_scan</code></td>
+<td>not fixed as a named expression</td>
+<td>no</td>
+</tr>
+<tr class="even">
+<td><code>reproducible_scan&lt;E&gt;</code></td>
+<td>named expression <code>E</code></td>
+<td>yes</td>
+</tr>
+</tbody>
+</table>
+<p>The proposed model does not remove implementation freedom. It
+identifies the missing semantic layer. Existing scan wording preserves
+operand order; a reproducible scan must also name the expression that
+defines each prefix value.</p>
+<hr />
+<h2 id="scopes-of-determinism">2. Scopes of determinism</h2>
+<p>“Deterministic” does not name a single property. A proposal for
+deterministic <code>scan</code> or <code>reduce</code> is ambiguous
+unless it states the scope of determinism being promised.</p>
+<p>At the weakest level, determinism may mean only run-to-run
+repeatability: the same program, input, implementation, and environment
+produce the same output on repeated runs. This is useful for testing,
+debugging, and audit, but it does not protect against changes in thread
+count, alignment, chunk size, vector width, or target hardware.</p>
+<p>A stronger claim is same-platform repeatability: the implementation
+yields stable results across ordinary execution choices on a single
+platform. This is often what users expect from a deterministic library
+implementation, but if the expression remains implicit, the guarantee is
+still implementation-defined. A change in partitioning may alter the
+expression being evaluated and, therefore, the floating-point result,
+even though each individual execution is repeatable.</p>
+<p>The next scope is expression-based reproducibility. Here, the result
+is defined by a named expression rather than by the execution shape used
+to compute it. The implementation may choose different schedules, chunk
+sizes, vector widths, or thread counts, but it must return the values
+defined by the expression contract. This is the point at which
+reproducibility becomes a specification property rather than merely an
+implementation habit.</p>
+<p>Cross-ISA and cross-implementation reproducibility require still more
+care. A named expression is necessary, but not always sufficient:
+contraction, extended precision, rounding, reassociation, exception
+behavior, and library-function differences may also have to be
+controlled. A portable named expression must therefore be specified
+precisely enough that independent conforming implementations produce the
+same result. The complementary problem of controlling the floating-point
+environment so that a fixed expression evaluates identically across
+implementations is the subject of [P3375R3].</p>
+<p>There is also a separate property: algorithmic consistency. Two
+algorithms may each be deterministic while disagreeing with each other.
+For example, a left-fold deterministic <code>scan</code> and a pairwise
+deterministic <code>reduce</code> may both be repeatable, yet the final
+scan element need not equal the reduce result over the same input.</p>
+<p>A reproducible scan need not automatically be consistent with a
+reproducible reduction. Consistency is an additional property. For a
+policy <code>E</code>, scan/reduce consistency means that each scan
+output is the same observation that would be produced by applying the
+corresponding reduction policy to that prefix:</p>
+<pre class="text"><code>inclusive_scan&lt;E&gt;(xs)[i] == reduce&lt;E&gt;(xs[0..i+1))</code></pre>
+<p>and, for the final prefix:</p>
+<pre class="text"><code>inclusive_scan&lt;E&gt;(xs)[n - 1] == reduce&lt;E&gt;(xs)</code></pre>
+<p>subject to the same operator, value type, initialization rules, and
+specified arithmetic environment.</p>
+<p>Throughout this paper, expressions such as
+<code>inclusive_scan&lt;E&gt;(xs)[i] == reduce&lt;E&gt;(xs[0..i+1))</code>
+are semantic identities: both sides denote the same abstract evaluation
+of the named expression <code>E</code>. They are not equalities up to
+mathematical associativity. For floating-point and other order-sensitive
+operations, bitwise equality follows only under the floating-point
+evaluation constraints associated with the policy; the complementary
+problem of specifying those constraints is the subject of [P3375R3]. For
+user-defined operations with observable order, the same caveat applies:
+<code>==</code> means the same expression is observed, not merely that
+two values compare equal under some later equivalence relation.</p>
+<p>The iterated pairwise expression described later has this property by
+definition. Other deterministic scan policies may be reproducible
+without providing this consistency guarantee.</p>
+<p>Heterogeneous execution makes these distinctions unavoidable. A
+computation distributed across x64, ARM, GPU, and edge devices may
+require a portable expression contract, or it may prefer the fastest
+implementation-defined deterministic expression on each target. Neither
+choice is wrong, but the choice must be explicit.</p>
+<p>The remainder of this paper is concerned with the scopes that require
+an expression contract, and in particular with the consistency property
+that arises when <code>reduce</code> and <code>scan</code> are specified
+as related algorithms rather than isolated implementations.</p>
+<hr />
+<h2 id="expression-is-not-execution">3. Expression is not execution</h2>
+<p>Specifying an expression does not specify an execution schedule.</p>
+<p>An expression contract defines the construction of return values. It
+does not constrain evaluation order, thread assignment, materialization
+of intermediates, vector width, or tile size. The implementation remains
+free to use any evaluation strategy that preserves the specified
+observable values.</p>
+<p>This separation is essential for standardization. The Standard must
+not over-constrain how implementations schedule and map work to
+hardware. CPU SIMD, many-core CPUs, and GPUs differ in their natural
+scheduling, vectorization, and memory-traffic patterns; those choices
+belong to the implementation, not the Standard.</p>
+<p>The Standard Library already uses this separation. A sorting
+algorithm specifies the order relation that must hold in the output, not
+the comparison schedule. A deterministic expression contract should
+specify the result-defining structure, not the hardware schedule.</p>
+<hr />
+<h2 id="the-accumulate-and-partial_sum-example">4. The
+<code>accumulate</code> and <code>partial_sum</code> example</h2>
+<p>The simplest way to introduce expression and observation is the
+relationship between <code>accumulate</code> and
+<code>partial_sum</code>.</p>
+<p>Ignoring the separate <code>init</code> parameter for the moment, the
+ordinary sequential expression is a left fold. <code>accumulate</code>
+observes the final value of that expression family.
+<code>partial_sum</code> observes every prefix value.</p>
+<p>For the input:</p>
+<pre class="text"><code>1, 2, 3, 4</code></pre>
+<p>the left-fold expression family is:</p>
+<pre class="text"><code>1
+(1 + 2)
+((1 + 2) + 3)
+(((1 + 2) + 3) + 4)</code></pre>
+<p>So the two algorithms can be described as:</p>
+<pre class="text"><code>accumulate  = final_observation(left_fold_expression(xs));
+partial_sum = prefix_observation(left_fold_expression(xs));</code></pre>
+<p>The following small example makes the distinction explicit. It is not
+intended as an efficient implementation; it is executable notation for
+the semantic model. The vector represents the values denoted by the
+expression family, not a required runtime representation.</p>
+<div class="sourceCode" id="cb6"><pre class="sourceCode cpp"><code class="sourceCode cpp"><span id="cb6-1"><a href="#cb6-1" aria-hidden="true" tabindex="-1"></a><span class="pp">#include </span><span class="im">&lt;cassert&gt;</span></span>
+<span id="cb6-2"><a href="#cb6-2" aria-hidden="true" tabindex="-1"></a><span class="pp">#include </span><span class="im">&lt;cstddef&gt;</span></span>
+<span id="cb6-3"><a href="#cb6-3" aria-hidden="true" tabindex="-1"></a><span class="pp">#include </span><span class="im">&lt;vector&gt;</span></span>
+<span id="cb6-4"><a href="#cb6-4" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb6-5"><a href="#cb6-5" aria-hidden="true" tabindex="-1"></a><span class="bu">std::</span>vector<span class="op">&lt;</span><span class="dt">int</span><span class="op">&gt;</span> left_fold_expression<span class="op">(</span><span class="at">const</span> <span class="bu">std::</span>vector<span class="op">&lt;</span><span class="dt">int</span><span class="op">&gt;&amp;</span> xs<span class="op">)</span></span>
+<span id="cb6-6"><a href="#cb6-6" aria-hidden="true" tabindex="-1"></a><span class="op">{</span></span>
+<span id="cb6-7"><a href="#cb6-7" aria-hidden="true" tabindex="-1"></a>    <span class="bu">std::</span>vector<span class="op">&lt;</span><span class="dt">int</span><span class="op">&gt;</span> prefixes<span class="op">;</span></span>
+<span id="cb6-8"><a href="#cb6-8" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb6-9"><a href="#cb6-9" aria-hidden="true" tabindex="-1"></a>    <span class="cf">if</span> <span class="op">(</span>xs<span class="op">.</span>empty<span class="op">())</span> <span class="op">{</span></span>
+<span id="cb6-10"><a href="#cb6-10" aria-hidden="true" tabindex="-1"></a>        <span class="cf">return</span> prefixes<span class="op">;</span></span>
+<span id="cb6-11"><a href="#cb6-11" aria-hidden="true" tabindex="-1"></a>    <span class="op">}</span></span>
+<span id="cb6-12"><a href="#cb6-12" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb6-13"><a href="#cb6-13" aria-hidden="true" tabindex="-1"></a>    <span class="dt">int</span> acc <span class="op">=</span> xs<span class="op">[</span><span class="dv">0</span><span class="op">];</span></span>
+<span id="cb6-14"><a href="#cb6-14" aria-hidden="true" tabindex="-1"></a>    prefixes<span class="op">.</span>push_back<span class="op">(</span>acc<span class="op">);</span></span>
+<span id="cb6-15"><a href="#cb6-15" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb6-16"><a href="#cb6-16" aria-hidden="true" tabindex="-1"></a>    <span class="cf">for</span> <span class="op">(</span><span class="bu">std::</span>size_t i <span class="op">=</span> <span class="dv">1</span><span class="op">;</span> i <span class="op">&lt;</span> xs<span class="op">.</span>size<span class="op">();</span> <span class="op">++</span>i<span class="op">)</span> <span class="op">{</span></span>
+<span id="cb6-17"><a href="#cb6-17" aria-hidden="true" tabindex="-1"></a>        acc <span class="op">=</span> acc <span class="op">+</span> xs<span class="op">[</span>i<span class="op">];</span></span>
+<span id="cb6-18"><a href="#cb6-18" aria-hidden="true" tabindex="-1"></a>        prefixes<span class="op">.</span>push_back<span class="op">(</span>acc<span class="op">);</span></span>
+<span id="cb6-19"><a href="#cb6-19" aria-hidden="true" tabindex="-1"></a>    <span class="op">}</span></span>
+<span id="cb6-20"><a href="#cb6-20" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb6-21"><a href="#cb6-21" aria-hidden="true" tabindex="-1"></a>    <span class="cf">return</span> prefixes<span class="op">;</span></span>
+<span id="cb6-22"><a href="#cb6-22" aria-hidden="true" tabindex="-1"></a><span class="op">}</span></span>
+<span id="cb6-23"><a href="#cb6-23" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb6-24"><a href="#cb6-24" aria-hidden="true" tabindex="-1"></a><span class="dt">int</span> final_observation<span class="op">(</span><span class="at">const</span> <span class="bu">std::</span>vector<span class="op">&lt;</span><span class="dt">int</span><span class="op">&gt;&amp;</span> expression<span class="op">)</span></span>
+<span id="cb6-25"><a href="#cb6-25" aria-hidden="true" tabindex="-1"></a><span class="op">{</span></span>
+<span id="cb6-26"><a href="#cb6-26" aria-hidden="true" tabindex="-1"></a>    <span class="cf">return</span> expression<span class="op">.</span>back<span class="op">();</span></span>
+<span id="cb6-27"><a href="#cb6-27" aria-hidden="true" tabindex="-1"></a><span class="op">}</span></span>
+<span id="cb6-28"><a href="#cb6-28" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb6-29"><a href="#cb6-29" aria-hidden="true" tabindex="-1"></a><span class="bu">std::</span>vector<span class="op">&lt;</span><span class="dt">int</span><span class="op">&gt;</span> prefix_observation<span class="op">(</span><span class="at">const</span> <span class="bu">std::</span>vector<span class="op">&lt;</span><span class="dt">int</span><span class="op">&gt;&amp;</span> expression<span class="op">)</span></span>
+<span id="cb6-30"><a href="#cb6-30" aria-hidden="true" tabindex="-1"></a><span class="op">{</span></span>
+<span id="cb6-31"><a href="#cb6-31" aria-hidden="true" tabindex="-1"></a>    <span class="cf">return</span> expression<span class="op">;</span></span>
+<span id="cb6-32"><a href="#cb6-32" aria-hidden="true" tabindex="-1"></a><span class="op">}</span></span>
+<span id="cb6-33"><a href="#cb6-33" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb6-34"><a href="#cb6-34" aria-hidden="true" tabindex="-1"></a><span class="dt">int</span> main<span class="op">()</span></span>
+<span id="cb6-35"><a href="#cb6-35" aria-hidden="true" tabindex="-1"></a><span class="op">{</span></span>
+<span id="cb6-36"><a href="#cb6-36" aria-hidden="true" tabindex="-1"></a>    <span class="bu">std::</span>vector<span class="op">&lt;</span><span class="dt">int</span><span class="op">&gt;</span> xs <span class="op">=</span> <span class="op">{</span><span class="dv">1</span><span class="op">,</span> <span class="dv">2</span><span class="op">,</span> <span class="dv">3</span><span class="op">,</span> <span class="dv">4</span><span class="op">};</span></span>
+<span id="cb6-37"><a href="#cb6-37" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb6-38"><a href="#cb6-38" aria-hidden="true" tabindex="-1"></a>    <span class="kw">auto</span> expression <span class="op">=</span> left_fold_expression<span class="op">(</span>xs<span class="op">);</span></span>
+<span id="cb6-39"><a href="#cb6-39" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb6-40"><a href="#cb6-40" aria-hidden="true" tabindex="-1"></a>    <span class="kw">auto</span> accumulated <span class="op">=</span> final_observation<span class="op">(</span>expression<span class="op">);</span></span>
+<span id="cb6-41"><a href="#cb6-41" aria-hidden="true" tabindex="-1"></a>    <span class="kw">auto</span> partial_sum <span class="op">=</span> prefix_observation<span class="op">(</span>expression<span class="op">);</span></span>
+<span id="cb6-42"><a href="#cb6-42" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb6-43"><a href="#cb6-43" aria-hidden="true" tabindex="-1"></a>    <span class="ot">assert</span><span class="op">(</span>accumulated <span class="op">==</span> <span class="dv">10</span><span class="op">);</span></span>
+<span id="cb6-44"><a href="#cb6-44" aria-hidden="true" tabindex="-1"></a>    <span class="ot">assert</span><span class="op">((</span>partial_sum <span class="op">==</span> <span class="bu">std::</span>vector<span class="op">&lt;</span><span class="dt">int</span><span class="op">&gt;{</span><span class="dv">1</span><span class="op">,</span> <span class="dv">3</span><span class="op">,</span> <span class="dv">6</span><span class="op">,</span> <span class="dv">10</span><span class="op">}));</span></span>
+<span id="cb6-45"><a href="#cb6-45" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb6-46"><a href="#cb6-46" aria-hidden="true" tabindex="-1"></a>    <span class="co">// The final prefix agrees with the final observation.</span></span>
+<span id="cb6-47"><a href="#cb6-47" aria-hidden="true" tabindex="-1"></a>    <span class="ot">assert</span><span class="op">(</span>partial_sum<span class="op">.</span>back<span class="op">()</span> <span class="op">==</span> accumulated<span class="op">);</span></span>
+<span id="cb6-48"><a href="#cb6-48" aria-hidden="true" tabindex="-1"></a><span class="op">}</span></span></code></pre></div>
+<p>The expression family is defined once, and the algorithms differ only
+in the observation taken from it. A real implementation is not required
+to materialize the expression in this form. The point is semantic: the
+result is defined as if the named expression family had been constructed
+and the specified observation had been taken.</p>
+<p>This example is deliberately simple because the left-fold expression
+exposes each prefix as the running accumulator. The more important case
+is the one that follows: for pairwise and blocked expressions, the root
+observation and the prefix observations are not merely different
+elements of a materialized sequence. They may require different
+observation rules over richer expression state. That is why
+<code>scan</code> forces the distinction between expression and
+observation.</p>
+<p>This gives the bridge to deterministic parallel algorithms:</p>
+<pre class="text"><code>reduce&lt;E&gt; = root_observation(E(xs));
+scan&lt;E&gt;   = prefix_observation(E(xs));</code></pre>
+<p>Here <code>E</code> denotes a named expression family, not merely a
+single root expression. It need not be a left fold. It might be a
+pairwise expression, a blocked dyadic expression, or an
+implementation-defined deterministic expression. The expression changes,
+but the model remains the same.</p>
+<hr />
+<h2 id="reduce-observes-the-root-scan-observes-prefixes">5. Reduce
+observes the root; scan observes prefixes</h2>
+<p>A deterministic <code>reduce</code> can be described as evaluating a
+named expression and returning its root value:</p>
+<pre class="text"><code>reduce&lt;E&gt;(first, last, init, op)
+    = root_observation(expression_family&lt;E&gt;(first, last, init, op));</code></pre>
+<p>A deterministic <code>scan</code> is richer. It must return one value
+for each prefix of the input range. Here <code>E</code> denotes a prefix
+expression family, not merely a single full-range tree:</p>
+<pre class="text"><code>inclusive_scan&lt;E&gt;(first, last, out, op)
+    = prefix_observations(expression_family&lt;E&gt;(first, last, op));</code></pre>
+<p>These equations are schematic. The treatment of <code>init</code>,
+aggregation type, and empty ranges is part of the expression contract
+and is discussed in §5.1.</p>
+<p>For <code>reduce</code>, the returned value is the root of the
+full-range expression. For <code>scan</code>, the returned values are
+the prefix values defined by the same named expression family.</p>
+<p>If <code>reduce</code> and <code>scan</code> use the same named
+expression <code>E</code>, the intended consistency property can be
+stated directly:</p>
+<pre class="text"><code>inclusive_scan&lt;E&gt;(first, last, out, op);
+
+out[i]     == reduce&lt;E&gt;(first, first + i + 1, op);
+out[n - 1] == reduce&lt;E&gt;(first, last, op);</code></pre>
+<p>This is not just a useful test. It is a semantic property. It says
+that <code>reduce</code> and <code>scan</code> are not unrelated
+deterministic algorithms: <code>reduce</code> returns the root value of
+the expression, while <code>scan</code> returns the corresponding prefix
+values.</p>
+<p>For a simple left fold, those prefix values are naturally
+present:</p>
+<pre class="text"><code>1
+(1 + 2)
+((1 + 2) + 3)
+(((1 + 2) + 3) + 4)</code></pre>
+<p>For a balanced tree or blocked dyadic expression, the situation is
+more subtle. A full-range pairwise reduction tree contains only the
+values produced by its specific topology; many input prefixes do not
+correspond to a single node of that tree. A blocked expression may
+contain block roots, local prefixes, and a specified rule for composing
+carries into those local prefixes. The expression contract must
+therefore define not only the root value, but the prefix values that
+<code>scan</code> returns.</p>
+<p>That is the distinction <code>scan</code> makes unavoidable:</p>
+<pre class="text"><code>What expression defines the values?
+Which values does the algorithm return?</code></pre>
+<h3 id="inclusive-scan-exclusive-scan-and-initialization">5.1 Inclusive
+scan, exclusive scan, and initialization</h3>
+<p>Inclusive and exclusive scans differ in which prefixes they return.
+An inclusive scan returns the prefix including the current element. An
+exclusive scan returns the prefix before the current element, usually
+composed with an initial value.</p>
+<p>For deterministic expression policies, initialization must be part of
+the contract. Where <code>init</code> is attached changes the
+expression. The final convention must therefore be chosen together with
+the API surface that exposes it. The examples below are not proposed
+semantics; they illustrate why initialization is a contract-level
+decision rather than a harmless overload detail.</p>
+<p>Consider:</p>
+<pre class="text"><code>xs   = [1, 2, 3, 4]
+init = 10</code></pre>
+<p>under the iterated pairwise expression of §6.3. The integer values
+are used only to make the expression structure readable. For ordinary
+integer addition the conventions below may evaluate to the same
+mathematical value. For floating-point and other order-sensitive
+operations, the same distinction can change the observable result.</p>
+<p>One possible convention is <em>init-as-first-element</em>. The
+initial value is prepended to the input and the canonical pairwise
+expression is taken over the augmented sequence
+<code>[10, 1, 2, 3, 4]</code>. The inclusive scan expressions are
+then:</p>
+<pre class="text"><code>S[0] = 10 + 1
+S[1] = (10 + 1) + 2
+S[2] = (10 + 1) + (2 + 3)
+S[3] = ((10 + 1) + (2 + 3)) + 4</code></pre>
+<p>Under this convention, supplying <code>init</code> changes the
+canonical bracketing of the input values themselves, because the
+expression is formed over <code>[init, x0, x1, x2, x3]</code>.</p>
+<p>Another possible convention is <em>init-outside-prefix</em>. The
+canonical pairwise expression is taken over the input prefix alone, and
+<code>init</code> is attached outside that prefix expression as the left
+operand of a final <code>op</code>:</p>
+<pre class="text"><code>S[0] = 10 + 1
+S[1] = 10 + (1 + 2)
+S[2] = 10 + ((1 + 2) + 3)
+S[3] = 10 + ((1 + 2) + (3 + 4))</code></pre>
+<p>Under this convention, the canonical tree of each input prefix is
+preserved; <code>init</code> is not part of that tree.</p>
+<p>These are not different implementations of the same contract. They
+are different expression contracts. A reproducible scan policy must say
+which convention it uses.</p>
+<p>Exclusive scan exposes the same issue. Under the
+init-as-first-element convention, the exclusive scan observes prefixes
+of the augmented sequence before the current input element:</p>
+<pre class="text"><code>S[0] = 10
+S[1] = 10 + 1
+S[2] = (10 + 1) + 2
+S[3] = (10 + 1) + (2 + 3)</code></pre>
+<p>Under the init-outside-prefix convention, the exclusive scan observes
+the input prefix before the current element and attaches
+<code>init</code> outside that prefix expression:</p>
+<pre class="text"><code>S[0] = 10
+S[1] = 10 + 1
+S[2] = 10 + (1 + 2)
+S[3] = 10 + ((1 + 2) + 3)</code></pre>
+<p>Again, these may agree for exact associative operations and disagree
+for floating-point or other order-sensitive operations. The distinction
+is not surface syntax; it is the expression being specified.</p>
+<p>The specification must define where <code>init</code> is attached,
+what aggregation type is used, how empty ranges behave, how exclusive
+prefixes are represented, and whether the final scan value is required
+to agree with <code>reduce</code> under the same convention.</p>
+<p>This paper does not choose between these conventions. A future
+wording paper must align the selected initialization rule with the
+selected API: for example, whether <code>init</code> is supplied as a
+seed, as a reduction-like initial value, as part of an expression
+policy, or through some other surface. The point here is only that
+initialization is semantic. It changes the expression contract.</p>
+<h3 id="returned-values-are-not-necessarily-expression-state">5.2
+Returned values are not necessarily expression state</h3>
+<p>An implementation may compute part of an expression and extract a
+value from it. That returned value is not automatically a valid
+replacement for the expression state from which it came.</p>
+<p>This matters for <code>scan</code>. A local prefix value may be
+numerically equal to the root of a subexpression, but treating that
+scalar as composable state at the next level can change the specified
+expression. For exact associative arithmetic this may be harmless. For
+deterministic floating-point semantics, it can change the result.</p>
+<p>The rule is:</p>
+<pre class="text"><code>expression state composes
+returned values are observed</code></pre>
+<p>A root value may be the result of a subexpression, but the
+specification should not accidentally permit implementations to compose
+observed prefix values as if they were summaries when doing so would
+change later observable results.</p>
+<p>The purpose of a named expression is therefore not merely to define
+the final reduction result. For <code>scan</code>, it must also define
+the prefix values and the rules by which those values are obtained.</p>
+<hr />
+<h2 id="candidate-expression-structures">6. Candidate expression
+structures</h2>
+<p>The proposal should not assume a single natural expression for all
+deterministic algorithms. Different expression structures provide
+different reproducibility contracts, and occupy different points in the
+design space: sequential compatibility, parallelism, accuracy,
+streamability, hardware locality, and consistency between
+<code>reduce</code> and <code>scan</code>.</p>
+<p>For <code>scan</code>, the important point is that the input order of
+each prefix is preserved. The variation is in the parenthesization. A
+scan does not turn:</p>
+<pre class="text"><code>a0, a1, a2, a3</code></pre>
+<p>into an arbitrary permutation. It computes prefix values over that
+sequence. But for order-sensitive operations, different valid
+parenthesizations of the same prefix may produce different results:</p>
+<pre class="text"><code>(((a0 op a1) op a2) op a3)</code></pre>
+<p>and</p>
+<pre class="text"><code>((a0 op a1) op (a2 op a3))</code></pre>
+<p>are not necessarily equivalent. Reproducible <code>scan</code>
+therefore needs to name the parenthesization rule.</p>
+<h3 id="left-fold-expression">6.1 Left-fold expression</h3>
+<p>The left-fold expression is:</p>
+<pre class="text"><code>(((a0 op a1) op a2) op ... op aN)</code></pre>
+<p>Its strength is clarity. It matches the traditional sequential mental
+model used by <code>partial_sum</code> and by many simple scan
+implementations. It also naturally exposes scan prefixes: every
+inclusive prefix is the next value on the left spine.</p>
+<p>Its weakness is the same structure. The expression has a linear
+dependency chain, exposes little parallelism, and for floating-point
+summation has the rounding behavior of a long sequential chain. It is
+therefore a poor default for high-performance parallel reduction, even
+though it gives the simplest scan/reduce consistency story.</p>
+<p>The left fold remains useful as a teaching example and for users who
+require compatibility with traditional sequential accumulation. But it
+should not be the only deterministic expression.</p>
+<h3 id="pairwise-expression">6.2 Pairwise expression</h3>
+<p>A pairwise expression recursively combines neighboring elements in a
+balanced tree. For eight elements:</p>
+<pre class="text"><code>(((a0 op a1) op (a2 op a3)) op ((a4 op a5) op (a6 op a7)))</code></pre>
+<p>Its strengths are logarithmic depth, natural parallelism, and, for
+floating-point summation, the familiar numerical advantage of balanced
+summation over a long left fold [Higham2002]. Pairwise expression
+families are therefore attractive for deterministic
+<code>reduce</code>.</p>
+<p>The difficulty appears when <code>scan</code> is added. A whole-range
+pairwise tree makes the root cheap to observe, but many prefixes are not
+nodes of that tree. A scan must therefore construct or observe prefix
+expressions separately. This can make a strict pairwise scan much more
+expensive than a scan expression designed around prefixes.</p>
+<p>This is one of the main implementation lessons: an expression that is
+excellent for <code>reduce</code> may be expensive for
+<code>scan</code>.</p>
+<h3 id="iterated-pairwise-expression">6.3 Iterated pairwise
+expression</h3>
+<p>The iterated pairwise expression is the direct scan counterpart of
+canonical pairwise reduction. For an input sequence
+<code>X[0..N)</code>, it defines each inclusive scan output as the
+canonical reduction of the corresponding prefix:</p>
+<pre class="text"><code>S[i] = CANONICAL_TREE_EVAL(op, X[0..i+1))</code></pre>
+<p>This expression gives scan/reduce consistency by construction. It is
+the most direct scan analogue of the canonical reduction expression in
+P4016R0.</p>
+<p><code>canonical_reduce</code> observes the root of the canonical
+expression for a range. <code>canonical_scan</code> observes the
+canonical expression for each prefix of that range. They are different
+observations of the same expression family.</p>
+<p>For the same operation, value type, and initialization
+convention:</p>
+<pre class="text"><code>canonical_scan(first, last, out, op);
+
+out[i]     == canonical_reduce(first, first + i + 1, op);
+out[n - 1] == canonical_reduce(first, last, op);</code></pre>
+<p>For eight elements, the scan expressions are:</p>
+<pre class="text"><code>S[0] = e0
+
+S[1] = op(e0, e1)
+
+S[2] = op(op(e0, e1), e2)
+
+S[3] = op(op(e0, e1), op(e2, e3))
+
+S[4] = op(op(op(e0, e1), op(e2, e3)), e4)
+
+S[5] = op(op(op(e0, e1), op(e2, e3)),
+          op(e4, e5))
+
+S[6] = op(op(op(e0, e1), op(e2, e3)),
+          op(op(e4, e5), e6))
+
+S[7] = op(op(op(e0, e1), op(e2, e3)),
+          op(op(e4, e5), op(e6, e7)))</code></pre>
+<p>The final scan value is the canonical pairwise reduction of the full
+range:</p>
+<pre class="text"><code>S[7] =
+    ((e0 op e1) op (e2 op e3))
+        op
+    ((e4 op e5) op (e6 op e7))</code></pre>
+<p>This expression can be generated incrementally with a shift-reduce
+stack. Each new element is pushed as a singleton expression. When
+adjacent entries have the same span, they are combined in canonical
+left-to-right order.</p>
+<p>The current scan value is then obtained by applying the canonical
+prefix-observation rule to the current stack state. The stack is
+expression state; observing it is not the same as performing an
+arbitrary fold over its entries. For non-associative operations, the
+observation rule must preserve the same parenthesization as
+<code>CANONICAL_TREE_EVAL</code> over the full prefix.</p>
+<p>The strength of this expression is semantic clarity. It proves that
+canonical <code>reduce</code> and canonical <code>scan</code> can be
+specified as consistent algorithms. It is also online: it does not
+require foreknowledge of the full input length.</p>
+<p>Its weakness is observation cost, but the asymptotic is not what it
+first appears. A naive observation strategy that folds the full
+shift-reduce stack at each emission gives <code>O(log n)</code> work per
+output and <code>O(N log N)</code> overall. By maintaining auxiliary
+observation state alongside the stack, and updating that state
+incrementally as elements are pushed and equal-sized spans are combined,
+observation can be made <code>O(1)</code> amortised per emission and the
+whole scan <code>O(N)</code>, while preserving the same canonical
+observation rule.</p>
+<p>The naive <code>O(N log N)</code> cost is therefore a property of one
+realization, not an inherent property of the iterated pairwise
+expression. What does vary with the choice of expression is the constant
+factor of prefix observation, its streamability, and its mapping to SIMD
+and tile execution. This is why §6.4 introduces the blocked dyadic
+expression as a different named contract rather than as a faster
+implementation of this one.</p>
+<p>The iterated pairwise expression is an excellent semantic reference
+for consistency. It is not necessarily the best high-performance scan
+expression.</p>
+<p>A fuller definition of the iterated pairwise expression, including
+exclusive scan, initialization, ragged tails, and a worked shift-reduce
+example, is given in Appendix A. The main text uses it only as one
+candidate named expression.</p>
+<h3 id="blocked-dyadic-expression">6.4 Blocked dyadic expression</h3>
+<p>A blocked dyadic expression is a practical compromise. It uses
+deterministic local structure inside fixed-size blocks, then
+deterministic dyadic composition between completed block states.</p>
+<p>At a high level:</p>
+<pre class="text"><code>1. Partition the range into fixed-size blocks of B elements.
+2. Evaluate a canonical local expression within each block.
+3. Compose completed block states using a deterministic inter-block expression.
+4. Define root and prefix results by a specified observation rule.</code></pre>
+<p>This gives a two-tier expression:</p>
+<pre class="text"><code>local block expression    deterministic within a block
+inter-block expression    deterministic across block states</code></pre>
+<p>The block size <code>B</code> is part of the expression contract, not
+merely a performance hint. The blocked dyadic expression is a
+<em>family</em> parameterized by <code>B</code>; each value of
+<code>B</code> instantiates a distinct expression contract with its own
+bracketing rule and, for floating-point and other order-sensitive
+operations, its own observable results. Two implementations agree on
+results only if they share both the named expression family and the same
+value of <code>B</code>.</p>
+<p>For example, with block size four:</p>
+<pre class="text"><code>B0 = ((a0 op a1) op (a2 op a3))
+B1 = ((a4 op a5) op (a6 op a7))</code></pre>
+<p>The reduction result is:</p>
+<pre class="text"><code>B0 op B1</code></pre>
+<p>The scan prefixes in the second block are formed from the completed
+first block and local prefixes of the second block:</p>
+<pre class="text"><code>out[4] = B0 op a4
+out[5] = B0 op (a4 op a5)
+out[6] = B0 op ((a4 op a5) op a6)
+out[7] = B0 op B1</code></pre>
+<p>This is still a scan: it returns one prefix value per input element
+in the original sequence. What has changed is the named expression
+family used to parenthesize those prefix values.</p>
+<p>The blocked dyadic expression is attractive because it maps well to
+SIMD blocks, GPU tiles, cache-local execution, and streaming
+implementations. It also gives deterministic inter-block structure,
+efficient root observation, and a precise rule for composing scan
+carries.</p>
+<p>The blocked dyadic expression is not a pure pairwise tree over all
+elements, and it is not merely a faster implementation of the iterated
+pairwise expression. It is a different named expression with different
+operational and numerical properties. A blocked dyadic scan is
+consistent with the corresponding blocked dyadic reduction using the
+same block size and expression rule. It is therefore not required to
+agree bitwise with an unblocked canonical pairwise reduction.</p>
+<p>The standards-relevant lesson is that blocked expressions name an
+expression suited to tiled, vector, or GPU execution, rather than
+treating every efficient implementation as a schedule for the same
+abstract tree.</p>
+<h3 id="precise-and-fast-scan-over-a-blocked-expression">6.5 Precise and
+fast scan over a blocked expression</h3>
+<p>The blocked expression exposes a useful distinction between precise
+and fast scan variants.</p>
+<p>For a prefix inside block <code>k</code>, the logical prefix consists
+of:</p>
+<pre class="text"><code>all complete blocks before k
+plus the local prefix inside block k</code></pre>
+<p>The precise observation rule is determined by the selected
+expression. For the iterated pairwise expression, the reference value
+for a prefix is the canonical reduction of that prefix. For a blocked
+dyadic expression, the reference value is the prefix observation defined
+by that blocked expression, using its block size and carry-composition
+rule.</p>
+<p>A precise scan composes the inter-block state for the previous blocks
+with the local prefix using the expression rule required for consistency
+with <code>reduce</code>.</p>
+<p>A fast scan may compute a block carry once and combine it with each
+local prefix using a cheaper bracketing. For exact associative
+arithmetic these may agree. For floating-point arithmetic they may
+differ; for example, <code>(1e16 + -1e16) + 1</code> evaluates to
+<code>1.0</code> while <code>1e16 + (-1e16 + 1)</code> evaluates to
+<code>0.0</code> under ordinary <code>double</code> round-to-nearest
+evaluation.</p>
+<p>This distinction matters. A fast scan can be deterministic without
+being consistent with the corresponding <code>reduce</code>. A
+consistent scan must share the required expression relationship with
+<code>reduce</code>.</p>
+<p>The useful slogan is:</p>
+<pre class="text"><code>Reproducibility is not consistency.</code></pre>
+<p>A proposal should not hide this difference. If consistency is
+required, the precise observation is the semantic reference. If a faster
+deterministic scan is useful, it should be named as a different
+expression or observation policy.</p>
+<h3 id="implementation-defined-deterministic-expression-policies">6.6
+Implementation-defined deterministic expression policies</h3>
+<p>An implementation-defined deterministic expression is an
+implementation-provided expression designed for a particular target. It
+may use tile shapes, vector widths, warp-level primitives, or carry
+propagation schemes that reflect the hardware.</p>
+<p>This category matters because forcing one portable expression onto
+every target may be unreasonably expensive. A CPU-friendly expression
+may be poor for a GPU; a GPU-friendly expression may be unnecessary or
+awkward on a CPU.</p>
+<p>The Standard should distinguish two categories of expression
+policy:</p>
+<pre class="text"><code>portable named expression policy
+    semantics specified by the Standard;
+    supports cross-implementation reproducibility.
+
+implementation-defined deterministic expression policy
+    semantics documented by the implementation;
+    may be target-shaped; not portable across implementations by default.</code></pre>
+<p>Both categories may be parameterized families. For example,
+<code>canonical_block_dyadic&lt;B&gt;</code> is a portable parameterized
+family; an implementation-defined GPU expression may itself be
+parameterized over tile size or warp width. The two categories are
+distinguished by who specifies the semantics, not by whether the family
+takes parameters.</p>
+<p>An implementation-defined deterministic expression should still be
+named and documented. Users should be able to distinguish, for
+example:</p>
+<pre class="text"><code>pairwise_expression                        (portable)
+block_dyadic_expression&lt;64&gt;                (portable, parameterized)
+implementation_defined_expression          (implementation-defined)</code></pre>
+<p>Only the portable expressions can promise cross-implementation
+reproducibility if their semantics are standardized. An
+implementation-defined deterministic expression can still provide
+valuable repeatability, consistency, and performance within the
+implementation that defines it.</p>
+<hr />
+<h2 id="relationship-to-p4016r0">7. Relationship to P4016R0</h2>
+<p>P4016R0 can be understood as the first instance of the more general
+expression/observation model. It addresses the root observation of a
+fixed expression. In that vocabulary:</p>
+<pre class="text"><code>P4016 reduce       = root observation of a named expression
+deterministic scan = prefix observations of a named expression</code></pre>
+<p>The scan proposal is therefore not a separate idea bolted onto
+reduction; it is the natural next step. <code>reduce</code> demonstrated
+why fixing the expression matters. <code>scan</code> demonstrates why
+the observation surface matters too.</p>
+<p>Deterministic <code>scan</code> is not “parallel scan with a stable
+schedule”. It is an algorithm whose output is defined by an expression
+contract and an observation contract.</p>
+<hr />
+<h2 id="operational-and-numerical-properties-of-expression-choice">8.
+Operational and numerical properties of expression choice</h2>
+<p>For <code>scan</code>, expression choice is an operational policy. It
+is also a numerical policy.</p>
+<p>Reproducibility alone is not enough. A reproducibly poor answer may
+not satisfy users; conversely, the most accurate expression may not be
+affordable on every hardware target, or may not support streaming
+<code>scan</code> efficiently. The proposal should therefore not imply
+that deterministic means numerically best. It should make the expression
+visible so users can choose among concrete goals corresponding to the
+trade-off axes introduced earlier:</p>
+<ul>
+<li>online evaluation</li>
+<li>bounded buffering</li>
+<li>streaming output</li>
+<li>traditional left-fold compatibility</li>
+<li>pairwise accuracy</li>
+<li>blocked SIMD efficiency</li>
+<li>scan/reduce consistency</li>
+<li>platform-specific implementation-defined deterministic
+throughput</li>
+<li>portable cross-ISA reproducibility</li>
+</ul>
+<p>These are different goals. The Standard should provide a way to
+select among them.</p>
+<h3 id="online-evaluation-bounded-buffering-and-streaming-output">8.1
+Online evaluation, bounded buffering, and streaming output</h3>
+<p>Three operational properties of a named expression are related but
+distinct:</p>
+<table>
+<colgroup>
+<col style="width: 50%" />
+<col style="width: 50%" />
+</colgroup>
+<thead>
+<tr class="header">
+<th>Property</th>
+<th>Meaning</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td>Online evaluation</td>
+<td>The expression can be formed incrementally as inputs arrive; the
+full range length need not be known in advance.</td>
+</tr>
+<tr class="even">
+<td>Bounded buffering</td>
+<td>The implementation need retain only bounded state, such as a stack,
+block, tile, or carry state, rather than materializing the whole input
+sequence.</td>
+</tr>
+<tr class="odd">
+<td>Streaming output</td>
+<td>Prefix results can be emitted progressively, rather than held until
+the entire input has been consumed.</td>
+</tr>
+</tbody>
+</table>
+<p>These properties matter for <code>scan</code>, because
+<code>scan</code> is naturally prefix-producing. Users may expect
+outputs to be produced as inputs are consumed, and range-based designs
+should not accidentally require the entire input sequence to be stored
+before the first result can be formed.</p>
+<p>The iterated pairwise expression has an important online property. It
+can be generated by a shift-reduce stack: each new element is pushed as
+a singleton expression, adjacent equal-sized spans are combined, and the
+full input length is not needed in advance. A naive observation strategy
+may fold the current stack at each output, but implementations can
+maintain auxiliary observation state and make prefix observation O(1)
+amortised. The relevant distinction is therefore not asymptotic
+inevitability, but the constant factors, regularity, buffering, and
+SIMD/tile mapping of the observation strategy.</p>
+<p>A blocked dyadic expression also has a useful online form. A
+fixed-size block can be evaluated locally, completed block states can be
+composed by an inter-block expression, and scan values can be emitted
+using the specified carry-composition rule. This may require buffering
+only the current block or tile, rather than materializing the whole
+sequence.</p>
+<p>This is another reason expression choice must be visible. Two
+expressions may both be reproducible, but differ materially in whether
+they support online evaluation, bounded buffering, or streaming output.
+A proposal should avoid defining reproducibility in a way that forces
+whole-sequence materialization unless that is an explicit property of
+the selected expression.</p>
+<h3 id="error-properties-as-part-of-documentation">8.2 Error properties
+as part of documentation</h3>
+<p>Expression choice is also numerical policy.</p>
+<p>For floating-point summation, expression choice affects numerical
+error. A left-fold expression has a linear-depth dependency chain: each
+new value is rounded into the running accumulator. A pairwise expression
+has logarithmic depth and gives the familiar logarithmic-depth error
+behavior under the usual floating-point error model [Higham2002].
+SIMD-oriented pairwise summation has also been studied as a
+throughput/accuracy trade-off [Dalton2014].</p>
+<p>A blocked dyadic expression occupies another point in the design
+space: deterministic local structure inside blocks, followed by
+deterministic composition between blocks. Its numerical behavior is not
+identical to either a pure left fold or a pure pairwise tree.</p>
+<p>A named expression should therefore be documented not only by its
+tree shape, but also by the numerical consequences a user can reasonably
+infer.</p>
+<table>
+<colgroup>
+<col style="width: 50%" />
+<col style="width: 50%" />
+</colgroup>
+<thead>
+<tr class="header">
+<th>Expression</th>
+<th>Structure</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td><code>left_fold_expression</code></td>
+<td>linear-depth dependency chain</td>
+</tr>
+<tr class="even">
+<td><code>pairwise_expression</code></td>
+<td>logarithmic-depth tree</td>
+</tr>
+<tr class="odd">
+<td><code>block_dyadic_expression&lt;B&gt;</code></td>
+<td>local block structure plus inter-block dyadic tree</td>
+</tr>
+<tr class="even">
+<td><code>implementation_defined_expression</code></td>
+<td>implementation-documented structure</td>
+</tr>
+</tbody>
+</table>
+<p>The Standard need not promise a particular forward-error bound for
+arbitrary user-defined operations, but it can specify enough structure
+that numerical experts can reason about error behavior for common
+operations such as floating-point summation.</p>
+<h3 id="accuracy-versus-consistency">8.3 Accuracy versus
+consistency</h3>
+<p>Accuracy and consistency are distinct properties.</p>
+<p>A deterministic <code>scan</code>/<code>reduce</code> pair can be
+made consistent by defining both algorithms over the same named
+expression. The scan and reduce then agree, and both are reproducible.
+But the chosen expression may have different numerical properties from a
+full pairwise expression over all elements.</p>
+<p>This is a selectable trade-off, not a failure. The proposal should
+let users request scan/reduce consistency without implying that all
+deterministic expressions are equally accurate.</p>
+<hr />
+<h2 id="execution-policy-and-scheduling">9. Execution policy and
+scheduling</h2>
+<p>An expression contract specifies the value to be observed. It does
+not specify the order in which an implementation performs the work.</p>
+<p>The proposed model separates three concerns:</p>
+<pre class="text"><code>execution policy       how work is mapped and scheduled
+expression contract    what abstract expression defines the values
+observation contract   which values of that expression are returned</code></pre>
+<p>A standard facility should specify the latter two. It should avoid
+specifying the first except where existing execution-policy wording
+already imposes constraints.</p>
+<p>A conforming implementation of a named blocked dyadic scan, for
+example, may use vector instructions within a block, multiple worker
+threads across blocks, a GPU block or warp-level primitive, a
+precomputed tree of block summaries, a look-back scheme, a two-pass
+implementation, or another strategy entirely, provided that the returned
+values are the specified observations of the named expression.</p>
+<p>This separation is especially important for <code>scan</code>. A
+naive attempt to make scan reproducible by fixing a particular schedule
+risks specifying an implementation technique rather than a semantic
+result.</p>
+<hr />
+<h2 id="standard-wording-direction">10. Standard wording direction</h2>
+<p>This paper is not proposing final wording. It proposes a direction
+for wording.</p>
+<p>The central standardization question is not whether one particular
+tree should be mandated for all deterministic algorithms. The question
+is whether the Standard should provide a way to name reproducibility
+contracts.</p>
+<p>A possible direction is to specify a family of expression policies.
+Each expression policy would define:</p>
+<ol type="1">
+<li>the abstract expression associated with a range, operator, and
+optional initial value;</li>
+<li>the observations provided by <code>reduce</code>,
+<code>inclusive_scan</code>, and <code>exclusive_scan</code>;</li>
+<li>the requirements on the operator and value types;</li>
+<li>the treatment of empty ranges and initialization;</li>
+<li>the consistency properties, if any, between algorithms using the
+same policy.</li>
+</ol>
+<p>Illustratively, one might describe such a facility as:</p>
+<pre class="text"><code>reproducible_reduce(policy, first, last, init, op);
+
+reproducible_inclusive_scan(policy, first, last, result, op);
+
+reproducible_exclusive_scan(policy, first, last, result, init, op);</code></pre>
+<p>This syntax is illustrative only and is not proposed API. The
+important point is not the exact spelling. The important point is that
+the reproducibility contract is explicit and selectable.</p>
+<p>An expression policy should not be merely an execution hint. It names
+the expression contract that defines the result.</p>
+<p>For a policy <code>E</code>, the specification may state properties
+such as:</p>
+<pre class="text"><code>reduce&lt;E&gt;(xs)
+    returns the root observation of E(xs)
+
+inclusive_scan&lt;E&gt;(xs)[i]
+    returns the inclusive prefix observation of E(xs) at position i</code></pre>
+<p>This notation is illustrative and is not proposed API syntax.</p>
+<p>For policies that provide scan/reduce consistency, the specification
+may additionally state:</p>
+<pre class="text"><code>inclusive_scan&lt;E&gt;(xs)[i]
+    is equal to reduce&lt;E&gt;(xs[0..i+1))</code></pre>
+<p>where equality means that both sides denote the same abstract
+evaluation of the named expression <code>E</code>, under the specified
+arithmetic environment. It is not equality up to mathematical
+associativity.</p>
+<p>This distinction matters for floating-point operations, saturating
+arithmetic, user-defined operations with observable order, and other
+operations for which associativity cannot be assumed.</p>
+<p>The wording should also be explicit that returned scan values need
+not be reusable expression states. A scan result is an observation. An
+implementation may maintain richer internal state than the value written
+to the output iterator.</p>
+<p>That distinction prevents accidental wording that requires
+implementations to compose observed prefix values as if they were
+summaries. Summaries compose. Observations are returned.</p>
+<hr />
+<h2 id="informative-implementation-experience">11. Informative
+implementation experience</h2>
+<p>The framework is supported by implementation work on CPU SIMD targets
+(AVX2, NEON) and CUDA. The details below are informative; they are not
+proposed wording.</p>
+<p>The most important lesson from that work is that <code>scan</code>
+exposes expression choice in a way reduction alone does not: a full
+pairwise tree attractive for <code>reduce</code> may be awkward for
+<code>scan</code> because many prefix values are not nodes of the
+full-range tree. This motivates blocked dyadic and
+implementation-defined deterministic expressions, which preserve a named
+expression contract while making prefix observation more
+implementation-friendly. CUDA work additionally separates
+<em>readiness</em> from <em>expression</em>: which metadata is ready is
+an execution fact, while which subexpressions may be combined is a
+semantic fact. Appendix B.8 reports a measured Tesla T4 result showing
+scan/reduce consistency at the bit level across 1M elements, alongside
+an existing GPU baseline whose scan and reduce do not agree with each
+other on the same input. The detail is in Appendix B.</p>
+<p>The standardization-relevant observation is general:</p>
+<blockquote>
+<p>Different named expressions have different operational and numerical
+properties. A reproducible facility should allow the contract to be
+named rather than hidden inside an implementation schedule.</p>
+</blockquote>
+<hr />
+<h2 id="design-principles">12. Design principles</h2>
+<p>The preceding sections suggest the following design principles.</p>
+<table>
+<colgroup>
+<col style="width: 50%" />
+<col style="width: 50%" />
+</colgroup>
+<thead>
+<tr class="header">
+<th>Principle</th>
+<th>Consequence</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td>Specify observable results, not execution schedules.</td>
+<td>A reproducible algorithm should define the expression and
+observations that determine its results. It should not prescribe a
+thread schedule, vector width, tile shape, carry-propagation protocol,
+or materialization strategy.</td>
+</tr>
+<tr class="even">
+<td>Make reproducibility an explicit contract.</td>
+<td>A user who requires reproducible results should be able to select a
+named expression contract rather than rely on an implementation
+habit.</td>
+</tr>
+<tr class="odd">
+<td>Treat expression choice as operational and numerical policy.</td>
+<td>The selected expression affects buffering, streaming behavior,
+parallel structure, numerical error, performance, and hardware
+suitability.</td>
+</tr>
+<tr class="even">
+<td>Distinguish reproducibility from consistency.</td>
+<td>A deterministic scan may be reproducible without being consistent
+with a deterministic reduce. Consistency should be an explicit property
+of the selected expression and observation contracts.</td>
+</tr>
+<tr class="odd">
+<td>Do not treat returned observations as composable expression
+state.</td>
+<td>A scan output is an observed value. It is not necessarily the
+internal state required to continue the expression.</td>
+</tr>
+<tr class="even">
+<td>Allow both portable and implementation-defined contracts.</td>
+<td>Portable named expressions can support cross-implementation
+agreement. Implementation-defined deterministic expressions can provide
+documented, stable behavior within a stated implementation or target
+domain.</td>
+</tr>
+</tbody>
+</table>
+<p>Two distinctions are especially important.</p>
+<p>Reproducibility asks:</p>
+<pre class="text"><code>Will this algorithm produce the same specified result?</code></pre>
+<p>Consistency asks:</p>
+<pre class="text"><code>Do two algorithms observe the same expression contract in compatible ways?</code></pre>
+<p>A fast deterministic scan may always produce the same result for a
+given implementation and policy, yet still differ from a deterministic
+reduce over the same range if the two algorithms use different
+expression contracts. Conversely, a scan/reduce pair can be made
+consistent by specifying both algorithms as compatible observations of
+the same named expression family.</p>
+<p>The same care is needed for observations and expression state. A
+returned prefix value may be numerically equal to the root of some
+subexpression, but it is not automatically valid as composable state for
+a larger expression. The specification should not accidentally permit
+implementations to compose observed prefix values as if they were
+summaries when doing so changes later observable results.</p>
+<p>Together, these principles lead to the same standardization
+direction: name the expression and observation contracts that define the
+result, while preserving implementation freedom for scheduling,
+vectorization, tiling, buffering, and hardware mapping.</p>
+<hr />
+<h2 id="analogy-with-random-number-generation">13. Analogy with
+random-number generation</h2>
+<p>The Standard Library already contains a useful precedent:
+random-number generation.</p>
+<p>The library does not provide only one source of randomness. It
+provides named engines and distributions. A user can choose an engine
+because its state transition and output properties matter.</p>
+<p>For example, users may care about:</p>
+<ul>
+<li>reproducibility</li>
+<li>period</li>
+<li>state size</li>
+<li>statistical quality</li>
+<li>speed</li>
+<li>portability</li>
+<li>suitability for a given simulation</li>
+</ul>
+<p>The same pattern applies to reproducible numeric algorithms.</p>
+<p>There need not be one universal deterministic expression for all
+uses. Instead, the Standard can provide named expressions with
+documented properties.</p>
+<p>A user might choose:</p>
+<pre class="text"><code>left_fold_expression
+    for compatibility with sequential accumulation
+
+pairwise_expression
+    for balanced reduction structure
+
+iterated_pairwise_expression
+    for direct scan/reduce consistency
+
+block_dyadic_expression&lt;B&gt;
+    for bounded local structure and practical scan implementation
+
+implementation_defined_expression
+    for implementation-documented deterministic throughput</code></pre>
+<p>The names above are illustrative, not proposed final API.</p>
+<p>The analogy is not exact. Random-number engines generate sequences,
+while named expressions define abstract computations. But the
+standardization pattern is similar: expose the contract that determines
+reproducibility-relevant behavior, rather than leaving it implicit.</p>
+<hr />
+<h2 id="non-goals">14. Non-goals</h2>
+<p>This proposal does not attempt the following:</p>
+<ul>
+<li><p><strong>Make all existing parallel algorithms reproducible by
+default.</strong> That would be a substantial semantic change. Existing
+parallel algorithms intentionally allow implementation freedom, and for
+many uses that freedom is valuable.</p></li>
+<li><p><strong>Require deterministic algorithms to be bitwise identical
+to existing sequential algorithms.</strong> For order-sensitive
+operations, different expression structures may legitimately produce
+different values. The purpose of a named expression is to make the
+chosen value reproducible, not to assert that it is the only reasonable
+value.</p></li>
+<li><p><strong>Mandate a single expression for all implementations and
+all hardware.</strong> A single mandated expression may be useful for
+some portable facilities, but it should not preclude other named
+contracts with different trade-offs.</p></li>
+<li><p><strong>Specify a GPU algorithm, SIMD algorithm, thread schedule,
+or buffering strategy.</strong> Implementation techniques are evidence
+that the model is practical. They are not the specification.</p></li>
+<li><p><strong>Solve numerical accuracy in general.</strong> A
+reproducible expression may be more accurate, less accurate, or
+differently accurate than another expression. Accuracy properties should
+be documented where relevant, but reproducibility and accuracy are not
+the same property.</p></li>
+<li><p><strong>Require users to abandon existing <code>reduce</code>,
+<code>inclusive_scan</code>, or <code>exclusive_scan</code>.</strong>
+The intent is to provide an explicit facility for users who require
+reproducibility, consistency, or documented expression
+semantics.</p></li>
+</ul>
+<hr />
+<h2 id="questions-for-sg6-and-sg1">15. Questions for SG6 and SG1</h2>
+<p>The paper asks for direction rather than presenting a fully closed
+design. If SG6 and SG1 agree with the model, a later revision can bring
+API alternatives to LEWG.</p>
+<p>The questions below are divided into primary direction questions and
+secondary design questions.</p>
+<p>The primary direction questions are:</p>
+<ul>
+<li>Is expression/observation the right abstraction for specifying
+reproducible <code>reduce</code> and <code>scan</code>? (§15.1)</li>
+<li>Should reproducibility contracts be named and selectable?
+(§15.2)</li>
+<li>Should scan/reduce consistency be a separately named property of
+some expression policies? (§15.4)</li>
+</ul>
+<p>Positive direction on these questions would indicate that a follow-on
+wording paper should explore named expression and observation policies.
+Negative direction on any of them should be discussed before spending
+meeting time on the more detailed design questions.</p>
+<p>The remaining questions — which expression policies to consider, how
+initialization should be specified, how portable and
+implementation-defined policies should be distinguished, and how
+expression policies should relate to execution policies — are secondary
+design questions for a follow-on wording paper. Informal direction on
+them is still useful, but they need not be settled before deciding
+whether the model is worth pursuing.</p>
+<h3 id="is-the-expression-and-observation-model-the-right-abstraction">15.1
+Is the expression-and-observation model the right abstraction?</h3>
+<p>Do SG6 and SG1 agree that reproducible <code>reduce</code> and
+<code>scan</code> should be specified by separating:</p>
+<pre class="text"><code>expression contract
+observation contract
+execution strategy</code></pre>
+<p>rather than by specifying an implementation schedule?</p>
+<h3 id="should-reproducibility-contracts-be-named-and-selectable">15.2
+Should reproducibility contracts be named and selectable?</h3>
+<p>Should the Standard expose named expressions through expression
+policies, rather than defining only one deterministic algorithm?</p>
+<h3 id="which-expression-policies-are-worth-standardizing">15.3 Which
+expression policies are worth standardizing?</h3>
+<p>Possible portable candidates include:</p>
+<pre class="text"><code>left_fold_expression
+pairwise_expression
+iterated_pairwise_expression
+block_dyadic_expression&lt;B&gt;</code></pre>
+<p>A separate question is whether the Standard should also provide a
+place for documented implementation-defined deterministic expression
+policies, and what requirements such policies must satisfy.</p>
+<p>The question is not whether these are final names. The question is
+which semantic contracts are useful enough to standardize.</p>
+<h3 id="should-scanreduce-consistency-be-a-separately-named-property">15.4
+Should scan/reduce consistency be a separately named property?</h3>
+<p>For some policies, it is valuable to guarantee:</p>
+<pre class="text"><code>inclusive_scan&lt;E&gt;(xs)[i] == reduce&lt;E&gt;(xs[0..i+1))</code></pre>
+<p>For other policies, deterministic throughput may be more important
+than this consistency property.</p>
+<p>Should the Standard distinguish consistency-preserving expression
+policies from throughput-prioritized deterministic policies?</p>
+<h3 id="how-should-initialization-be-specified">15.5 How should
+initialization be specified?</h3>
+<p>Initialization affects the expression.</p>
+<p>The paper should ask how much should be fixed for:</p>
+<pre class="text"><code>reduce with init
+inclusive_scan with and without init
+exclusive_scan with init
+empty ranges
+type conversion and the aggregation type</code></pre>
+<p>These details are necessary for a real wording paper.</p>
+<h3 id="how-should-portable-and-implementation-defined-expressions-be-distinguished">15.6
+How should portable and implementation-defined expressions be
+distinguished?</h3>
+<p>A portable expression policy can provide cross-implementation
+agreement. An implementation-defined deterministic policy can provide
+deterministic results with better use of hardware-specific features.
+Both categories are valuable. The question is how the Standard should
+distinguish them — for example, by reserving certain names, requiring
+documentation, or scoping conformance claims to the originating
+implementation.</p>
+<h3 id="what-is-the-right-relationship-to-existing-execution-policies">15.7
+What is the right relationship to existing execution policies?</h3>
+<p>The design should not confuse expression policy with execution
+policy.</p>
+<p>A possible design may allow both:</p>
+<pre class="text"><code>execution policy:   where and how work is scheduled
+expression policy:  what result is specified</code></pre>
+<p>SG6 and SG1 should advise whether these should be separate
+parameters, combined policy objects, customization points, or a
+different mechanism.</p>
+<hr />
+<h2 id="conclusion">16. Conclusion</h2>
+<p>P4016R0 showed that reproducible parallel reduction can be specified
+by naming the expression whose root defines the result.</p>
+<p>Parallel scan exposes the next layer of the problem. A scan does not
+observe only the root of an expression. It observes prefix values.
+Therefore a reproducible scan needs both an expression contract and an
+observation contract.</p>
+<p>This distinction also clarifies the relationship between
+<code>reduce</code> and <code>scan</code>.</p>
+<p>A deterministic <code>reduce</code> is a root observation of a named
+expression. A deterministic <code>scan</code> is a family of prefix
+observations of a named expression. When both algorithms use the same
+named expression and compatible initialization rules, scan/reduce
+consistency can be specified directly.</p>
+<p>The choice of expression is not merely formal. Implementation
+experience suggests that it affects performance, scalability, buffering,
+streamability, numerical behavior, and hardware suitability. Some
+expressions are natural for reduction but costly for scan. Others are
+shaped to make prefix observation efficient. This is a design space, not
+a single point.</p>
+<p>The Standard should specify the result by naming the expression and
+the observations, leaving implementations free to choose efficient
+schedules that preserve those observable values.</p>
+<p>Named abstract expressions provide the missing specification layer:
+selectable reproducibility contracts for parallel <code>reduce</code>
+and <code>scan</code>, each admitting multiple conforming
+implementations.</p>
+<hr />
+<h1 id="appendix-a-direct-iterated-pairwise-scan-policy">Appendix A:
+Direct Iterated Pairwise Scan Policy</h1>
+<p>This appendix records the most direct scan policy derived from
+P4016R0. The reduction expression rule is unchanged: each scan output is
+defined as the canonical reduction of the corresponding prefix. What
+changes is the observation pattern. Reduction observes one root value;
+scan observes one root value for each prefix.</p>
+<p>The purpose of this appendix is not to propose that this policy is
+the only useful reproducible scan contract. It is a semantic reference
+point: a policy that gives scan/reduce consistency by construction.</p>
+<h2 id="a.1-inclusive-iterated-pairwise-scan">A.1 Inclusive iterated
+pairwise scan</h2>
+<p>For an input sequence <code>X[0..N)</code> and binary operation
+<code>op</code>, the inclusive iterated pairwise scan produces an output
+sequence <code>S[0..N)</code> where:</p>
+<pre class="text"><code>S[i] = CANONICAL_TREE_EVAL(op, X[0..i+1))
+    for i in [0, N)</code></pre>
+<p><code>CANONICAL_TREE_EVAL</code> is the canonical reduction
+expression defined by P4016R0. Each scan output is therefore the value
+of a fixed abstract expression over the corresponding prefix.</p>
+<p>For a given input order, operation, value type, and floating-point
+evaluation model, the expression at every output position is uniquely
+determined.</p>
+<h2 id="a.2-exclusive-iterated-pairwise-scan">A.2 Exclusive iterated
+pairwise scan</h2>
+<p>For an input sequence <code>X[0..N)</code>, binary operation
+<code>op</code>, and initial value <code>init</code>, one possible
+exclusive convention is:</p>
+<pre class="text"><code>S[0] = init_A
+
+S[i] = op(init_A, CANONICAL_TREE_EVAL(op, X[0..i)))
+    for i in [1, N)</code></pre>
+<p>Here <code>init_A</code> denotes the initial value after any
+conversion to the aggregation type required by the selected convention.
+This convention places the initial value outside the tree as the left
+operand of a final application of <code>op</code>.</p>
+<p>Final wording would need to align the treatment of initialization,
+aggregation type, empty ranges, and conversion rules with the
+corresponding <code>reduce</code> convention.</p>
+<h2 id="a.3-scanreduce-consistency">A.3 Scan/reduce consistency</h2>
+<p>The iterated pairwise expression gives scan/reduce consistency by
+definition:</p>
+<pre class="text"><code>iterated_pairwise_scan(op, X[0..N))[i]
+    == canonical_reduce(op, X[0..i+1))</code></pre>
+<p>and, in particular:</p>
+<pre class="text"><code>iterated_pairwise_scan(op, X[0..N))[N-1]
+    == canonical_reduce(op, X[0..N))</code></pre>
+<p>This is not a performance claim. It is a semantic identity. Both
+sides evaluate the same abstract expression.</p>
+<h2 id="a.4-reference-shift-reduce-construction">A.4 Reference
+shift-reduce construction</h2>
+<p>The iterated pairwise expression can be generated online by a
+shift-reduce stack.</p>
+<p>Each new element is pushed as a singleton expression. Adjacent
+entries of the same span are combined in canonical left-to-right order.
+The stack therefore represents expression state for the prefix consumed
+so far.</p>
+<p>The scan output is obtained by applying the prefix-observation rule
+to that stack state. This observation must preserve the same
+parenthesization as <code>CANONICAL_TREE_EVAL</code> over the full
+prefix. It is not an arbitrary fold over the stack entries.</p>
+<p>This construction is executable notation for the policy. It does not
+constrain implementation strategy.</p>
+<h2 id="a.5-ragged-tails-and-absent-operands">A.5 Ragged tails and
+absent operands</h2>
+<p>In vectorized or blocked implementations, a final partial block may
+be represented using absent operands. The semantic input remains the
+actual sequence <code>X[0..N)</code>. No padding value is introduced and
+no identity element is required.</p>
+<p>A conceptual implementation may use a maybe-domain rule:</p>
+<pre class="text"><code>COMBINE(present x, present y) = present op(x, y)
+COMBINE(present x, absent)    = present x
+COMBINE(absent, present y)    = present y
+COMBINE(absent, absent)       = absent</code></pre>
+<p>This is an implementation aid for fixed-size local trees. The
+observable scan values are emitted only for present input positions.</p>
+<h2 id="a.6-numerical-properties-for-floating-point-summation">A.6
+Numerical properties for floating-point summation</h2>
+<p>For floating-point summation under the usual error model, the
+canonical pairwise expression has logarithmic-depth error behavior for
+each prefix [Higham2002], in contrast to the linear-depth chain of a
+left fold.</p>
+<p>This illustrates the main paper’s point: expression choice is also
+numerical policy.</p>
+<p>The Standard need not specify such a bound for arbitrary
+<code>binary_op</code>, but a named expression gives users enough
+structure to reason about numerical consequences.</p>
+<h2 id="a.7-limitations-of-the-direct-policy">A.7 Limitations of the
+direct policy</h2>
+<p>The iterated pairwise expression is simple and scan/reduce
+consistent. It is also useful as a semantic reference.</p>
+<p>Its primary limitation is not asymptotic. Naive observation that
+folds the full stack at each emission is <code>O(log n)</code> per
+emission and <code>O(N log N)</code> overall. Observation that carries
+per-level running-prefix state alongside the shift-reduce stack and
+updates it incrementally can be <code>O(1)</code> amortised per emission
+and <code>O(N)</code> overall, while preserving the same canonical
+observation rule.</p>
+<p>The amortised argument is the same as for binary-counter increments:
+over <code>N</code> pushes, the total number of equal-span combine
+events is <code>O(N)</code>, even though a single push may occasionally
+cascade through <code>O(log N)</code> levels.</p>
+<p>The real limitation is operational. Strict iterated pairwise
+observation maintains a stack of spans of mixed sizes, which does not
+map naturally onto fixed-width SIMD blocks, GPU tiles, or other regular
+execution units. This motivates blocked dyadic and
+implementation-defined deterministic expressions. Such expressions are
+not merely alternative implementations of the same iterated pairwise
+expression. They are distinct named contracts with different operational
+and numerical properties, chosen for streamability, SIMD/tile mapping,
+and bounded local buffering rather than for asymptotic reasons.</p>
+<hr />
+<h1 id="appendix-b-implementation-experience">Appendix B: Implementation
+Experience</h1>
+<p>This appendix records implementation experience relevant to the
+proposal. The details are informative. They are evidence for the
+expression/observation model, not proposed wording.</p>
+<h2 id="b.1-cpu-simd-experience">B.1 CPU SIMD experience</h2>
+<p>CPU SIMD implementations suggest that blocked expressions can be made
+both efficient and semantically clean.</p>
+<p>A fixed block size allows a deterministic local expression to be
+evaluated using vector registers and straight-line code. Completed block
+states can then be composed using a deterministic higher-level
+expression. The resulting implementation may provide:</p>
+<ul>
+<li>reproducible local scan values;</li>
+<li>deterministic block summaries;</li>
+<li>scan/reduce consistency for the named blocked expression;</li>
+<li>efficient use of SIMD lanes;</li>
+<li>bounded local buffering.</li>
+</ul>
+<p>The important observation is that block size and local expression
+shape are semantic choices if they affect the result. They should
+therefore be part of the named expression, not hidden as incidental
+tuning parameters.</p>
+<h2 id="b.2-cuda-scan-as-a-stress-test">B.2 CUDA scan as a stress
+test</h2>
+<p>CUDA scan is a useful stress test for the expression/observation
+model. A reduction observes one root value. A scan must produce every
+prefix value. On GPU hardware this interacts strongly with global memory
+traffic, occupancy, synchronization, and carry propagation.</p>
+<p>A conventional efficient GPU scan tries to stay close to the ideal
+traffic model: read the input once and write the output once.
+Hierarchical deterministic scans can easily require additional global
+passes: local scan output, block totals, a scan of block totals, and a
+carry-add pass. The extra traffic may dominate.</p>
+<p>This matters for standardization. A reproducible scan facility should
+not mandate a CPU-centric expression or a particular multi-pass
+schedule. It should specify observable values and leave implementations
+free to use hardware-appropriate execution strategies.</p>
+<h2 id="b.3-readiness-is-not-expression">B.3 Readiness is not
+expression</h2>
+<p>Efficient GPU scans often use look-back protocols, notably the
+decoupled look-back family of Merrill and Garland [Merrill2016]. A tile
+computes a local scan, publishes metadata, and later tiles determine
+their carry by looking back through published summaries.</p>
+<p>For deterministic semantics, the critical issue is not when metadata
+becomes ready. The critical issue is which expression the metadata
+represents.</p>
+<p>Readiness is an execution fact. Expression is a semantic fact. A
+deterministic look-back protocol may poll, wait, or use available
+metadata in different ways, but all permitted paths must produce the
+same specified expression. If using whichever fragment is ready changes
+the bracketing or operand order, scheduling has leaked into the
+result.</p>
+<p>A deterministic protocol must therefore specify, or be constrained
+by, rules such as:</p>
+<ul>
+<li>which spans may be used;</li>
+<li>how spans are combined;</li>
+<li>which operand order is used;</li>
+<li>when a parent summary is valid;</li>
+<li>whether children may be used instead of a parent;</li>
+<li>how fallback paths preserve the same expression.</li>
+</ul>
+<h2 id="b.4-owner-publication-and-ready-only-observation">B.4 Owner
+publication and ready-only observation</h2>
+<p>One class of CUDA prototypes used owner publication: responsibility
+for publishing parent summaries was assigned deterministically.
+Consumers could observe ready metadata, but the protocol was constrained
+so that observations preserved the intended dyadic expression.</p>
+<p>This was semantically attractive. It avoided opportunistic synthesis
+in which a consumer combines available fragments in a schedule-dependent
+order. The cost was additional metadata traffic and waiting in the carry
+path.</p>
+<p>This experience supports the paper’s distinction between expression
+and execution. The implementation may schedule work asynchronously, but
+the expression being observed must remain fixed.</p>
+<h2 id="b.5-chunk-level-expressions">B.5 Chunk-level expressions</h2>
+<p>A later class of prototypes grouped tiles into chunks. The chunk
+owner constructed and published chunk-level summaries, reducing the
+amount of global look-back work required by individual tiles.</p>
+<p>This changed the engineering trade-off. Chunk-level ownership reduced
+carry attempts, metadata reads, and parent waits in the prototypes that
+were measured. However, some diagnostic versions paid additional local
+scan cost, moving the implementation away from the ideal traffic
+model.</p>
+<p>The important standards lesson is not the particular chunk size or
+CUDA protocol. The lesson is that a tile or chunk expression may be a
+better deterministic contract for a GPU than a strict unblocked pairwise
+expression. That expression should be named and documented rather than
+hidden inside an implementation schedule.</p>
+<h2 id="b.6-accuracy-consistency-and-throughput">B.6 Accuracy,
+consistency, and throughput</h2>
+<p>The CUDA work also illustrates that accuracy, consistency,
+reproducibility, and throughput are distinct properties.</p>
+<p>A full pairwise expression may provide attractive numerical
+properties for floating-point summation. A tile-based expression may map
+better to GPU scan. A deterministic scan and deterministic reduce can be
+made mutually consistent by using the same tile or chunk expression,
+even if that expression is not the same as an unblocked pairwise
+expression over all elements.</p>
+<p>This is not a defect. It is a policy choice. The user should be able
+to know which expression was selected and which properties follow from
+it.</p>
+<h2 id="b.7-correctness-reference">B.7 Correctness reference</h2>
+<p>The correctness criterion for these prototypes was bit equality with
+the selected expression reference. CUB-style scans (referring to
+NVIDIA’s CUB primitive library) are useful performance baselines, but
+unless they expose the same named expression, they are not semantic
+references for this proposal.</p>
+<p>The right comparison has two dimensions:</p>
+<pre class="text"><code>semantic comparison:
+    does the implementation match the named expression?
+
+performance comparison:
+    how close is it to a highly tuned scan baseline?</code></pre>
+<h2 id="b.8-measured-cuda-results">B.8 Measured CUDA results</h2>
+<p>A standalone CUDA harness implements a blocked dyadic expression
+aligned to the <code>canonical_block_dyadic</code> semantics described
+in §6.4. The implementation uses a three-pass structure (block roots,
+global tree, prefix emission) deliberately, so that readiness does not
+leak into the expression. Measurements were taken on an NVIDIA Tesla T4
+with <code>N = 1,048,576</code> <code>double</code> inputs, block size
+<code>B = 256</code>, and <code>--fmad=false</code> to prevent fused
+multiply-add contraction.</p>
+<p>The semantic results agree exactly with the expression contract. CUB
+and the canonical implementation evaluate different expressions.
+Bit-disagreement between them is therefore expected and is the point
+being witnessed, not a defect in CUB.</p>
+<table>
+<colgroup>
+<col style="width: 50%" />
+<col style="width: 50%" />
+</colgroup>
+<thead>
+<tr class="header">
+<th>Property</th>
+<th>Result</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td>canonical scan back element vs canonical reduce</td>
+<td>bit-exact (<code>0x406fef4dbe54a0f8</code>)</td>
+</tr>
+<tr class="even">
+<td>canonical scan back element vs host canonical reduce</td>
+<td>bit-exact (<code>0x406fef4dbe54a0f8</code>)</td>
+</tr>
+<tr class="odd">
+<td>sampled mid-range prefixes vs host reference</td>
+<td>22 of 22 bit-exact</td>
+</tr>
+<tr class="even">
+<td>CUB <code>inclusive_scan</code> back element vs CUB
+<code>reduce</code></td>
+<td>differ (<code>0x...a0eb</code> vs <code>0x...a0d7</code>)</td>
+</tr>
+<tr class="odd">
+<td>CUB <code>inclusive_scan</code> vs canonical
+<code>inclusive_scan</code></td>
+<td>975,698 of 1,048,576 elements differ</td>
+</tr>
+<tr class="even">
+<td>canonical scan throughput vs CUB scan</td>
+<td>5.115× slower</td>
+</tr>
+<tr class="odd">
+<td>canonical reduce throughput vs CUB reduce</td>
+<td>1.922× slower</td>
+</tr>
+</tbody>
+</table>
+<p>Two observations are relevant to the proposal. First, the canonical
+implementation demonstrates that scan/reduce consistency is achievable
+in practice on GPU hardware: the final scan output and the reduce output
+denote the same value of the same named expression, and the agreement is
+bit-exact. Second, CUB’s existing <code>inclusive_scan</code> and
+<code>reduce</code> are each individually deterministic on this
+hardware, yet they do not agree with each other on the same input. This
+is precisely the gap §2 and §6.5 describe between reproducibility and
+scan/reduce consistency: each algorithm is reproducible under its own
+implicit expression, but the two expressions are not the same.</p>
+<p>The performance gap is informative but not part of the proposal. The
+canonical implementation is 5× slower than CUB on scan because it uses
+additional global memory traffic to keep the expression contract
+independent of look-back readiness. Closing that gap is an
+implementation question within the contract, not a question about the
+contract itself. The standardization-relevant lesson is that an
+implementation can pay a measured cost for an explicit expression
+contract, and that the cost is bounded enough to be a real engineering
+trade-off rather than a prohibitive one.</p>
+<h2 id="b.9-lesson-for-the-proposal">B.9 Lesson for the proposal</h2>
+<p>The implementation work supports the main proposal: <code>scan</code>
+makes expression choice visible in a way reduction alone does not.
+Pairwise, blocked dyadic, tile-based, and implementation-defined
+deterministic expressions occupy different points in the design
+space.</p>
+<p>The Standard should therefore not prescribe a memory-traffic pattern,
+carry protocol, tile size, or look-back scheme. It should specify
+observable values. Scan/reduce consistency remains a valuable additional
+property, but it is a selectable property of the chosen expression and
+observation contracts.</p>
+<hr />
+<h1 id="appendix-c-executable-cuda-artifact">Appendix C: Executable CUDA
+artifact</h1>
+<p>The following Compiler Explorer artifact is informative and is not
+proposed wording:</p>
+<p><a href="https://godbolt.org/z/qMa9bs3zh">P4016 canonical CUDA
+scan/reduce witness</a><br />
+URL: <a href="https://godbolt.org/z/qMa9bs3zh" class="uri">https://godbolt.org/z/qMa9bs3zh</a></p>
+<p>The artifact demonstrates the expression/observation model using a
+P4016-style canonical prefix expression. The central relationship
+is:</p>
+<pre><code>canonical reduce = root observation of a named expression family
+canonical scan   = prefix observations of the same expression family</code></pre>
+<p>The CUDA code treats the input as 128 semantic lanes, groups rows
+into fixed-size chunks, builds a canonical chunk expression, and then
+observes that expression in two ways. The reduction observes the root.
+The scan observes prefixes. The key semantic check is therefore bitwise
+equality of the final scan observation and the corresponding reduction
+root:</p>
+<pre><code>bits(scan.back()) == bits(canonical_reduce)</code></pre>
+<p>The artifact also checks selected prefix observations directly:</p>
+<pre><code>scan[i] == canonical_reduce(input[0..i+1))</code></pre>
+<p>In the shown hostile floating-point case, the artifact reports that
+<code>scan.back()</code> agrees bitwise with the canonical reduction,
+repeated scans produce the same full output array, and 512 selected
+prefix probes match direct canonical prefix reductions. CUB is included
+only as a performance contrast; it is not the semantic reference for the
+named P4016 expression. On hostile floating-point inputs, CUB and the
+selected expression are expected to produce different bit patterns.</p>
+<hr />
+<h1 id="appendix-d-executable-cuda-witness-canonical_block_dyadic-expression">Appendix
+D: Executable CUDA witness — canonical_block_dyadic expression</h1>
+<p>The following Compiler Explorer artifact is informative and is not
+proposed wording:</p>
+<p><a href="https://godbolt.org/z/aqfY6TWas">canonical_block_dyadic CUDA
+scan/reduce witness</a><br />
+URL: <a href="https://godbolt.org/z/aqfY6TWas" class="uri">https://godbolt.org/z/aqfY6TWas</a></p>
+<p>The artifact witnesses the <code>canonical_block_dyadic</code>
+expression of §6.4. Where Appendix C exhibits prefix observation of the
+iterated pairwise expression, this artifact exhibits prefix observation
+of the two-tier blocked dyadic expression: a canonical local expression
+within each fixed-size block, composed across completed block states by
+a deterministic inter-block expression. The central relationship is:</p>
+<pre><code>canonical reduce = root observation of the canonical_block_dyadic expression
+canonical scan   = prefix observations of the same expression</code></pre>
+<p>The CUDA code partitions the input into fixed-size blocks of
+<code>B</code> <code>double</code> elements, evaluates a canonical
+pairwise expression within each block, and composes completed block
+states using a canonical dyadic tree over block roots. Prefix
+observation follows the carry-composition rule specified by the blocked
+expression: for a position <code>j</code> inside block <code>b</code>,
+the scan output is <code>init + (D_b + P_b(j))</code>, where
+<code>D_b</code> is the canonical inter-block prefix of completed blocks
+<code>[0..b)</code> and <code>P_b(j)</code> is the canonical local
+prefix within block <code>b</code> up to position <code>j</code>. At
+block boundaries this reduces to <code>init + D_{b+1}</code>, attaching
+the carry as a peer to the next completed block state rather than
+absorbing it into local prefix arithmetic. Readiness of block roots and
+inter-block summaries is computed in a deliberately separate pass from
+prefix emission, so that the named expression is not affected by the
+order in which metadata becomes available. The key semantic check is
+therefore bitwise equality of the final scan observation and the
+corresponding reduction root:</p>
+<pre><code>bits(scan.back()) == bits(canonical_reduce)</code></pre>
+<p>The artifact also checks selected prefix observations directly
+against the canonical_block_dyadic reference computed on the host:</p>
+<pre><code>scan[i] == canonical_block_dyadic_reduce(input[0..i+1))</code></pre>
+<p>On the reported Tesla T4 run with <code>N = 1,048,576</code>
+<code>double</code> inputs, block size <code>B = 256</code>, and
+<code>--fmad=false</code>, the artifact reports that
+<code>scan.back()</code> agrees bitwise with the canonical reduction,
+sampled mid-range prefix probes match the host canonical_block_dyadic
+reference, and the canonical scan is approximately 5.292× slower than
+CUB scan while the canonical reduce is approximately 1.997× slower than
+CUB reduce. The gap is implementation cost within the contract, not a
+property of the contract itself: the three-pass structure trades global
+memory traffic for an expression that is independent of look-back
+readiness, and closing that gap is an implementation question pursued in
+a later revision.</p>
+<hr />
+<h1 id="appendix-e-executable-cpu-witnesses-canonical_block_dyadic-expression-on-x86-64-and-aarch64">Appendix
+E: Executable CPU witnesses — canonical_block_dyadic expression on
+x86-64 and AArch64</h1>
+<p>The following Compiler Explorer artifacts are informative and are not
+proposed wording:</p>
+<ul>
+<li><a href="https://godbolt.org/z/nEae7MGW7">canonical_block_dyadic CPU
+scan/reduce witness — x86-64 (AVX2)</a><br />
+URL: <a href="https://godbolt.org/z/nEae7MGW7" class="uri">https://godbolt.org/z/nEae7MGW7</a></li>
+<li><a href="https://godbolt.org/z/qEv6YnG54">canonical_block_dyadic CPU
+scan/reduce witness — AArch64 (NEON)</a><br />
+URL: <a href="https://godbolt.org/z/qEv6YnG54" class="uri">https://godbolt.org/z/qEv6YnG54</a></li>
+</ul>
+<p>Both artifacts witness the same <code>canonical_block_dyadic</code>
+expression of §6.4 as the CUDA witness in Appendix D, but on host CPU
+targets. The contract is unchanged:</p>
+<pre><code>canonical reduce = root observation of the canonical_block_dyadic expression
+canonical scan   = prefix observations of the same expression</code></pre>
+<p>Each artifact times a single-pass O(N) realization of the named
+expression against the <code>std::reduce</code> and
+<code>std::inclusive_scan</code> baselines on its host. The within-block
+axis is the canonical pairwise tree evaluated as straight-line code at
+compile-time-fixed <code>B</code>; the across-block axis is an iterated
+dyadic stack at L=1, drained per block to emit each prefix. Each block
+emission attaches the local prefix as a peer of the across-block
+subtotal <code>D_b</code> and commits the block total <code>bt_b</code>
+to the stack, in the convention <code>init + (D_b + P_b(j))</code>
+mid-block and <code>init + D_{b+1}</code> block-final. The same
+correctness checks as in Appendix D apply, plus a per-prefix oracle
+check against the §6.4 literal evaluator:</p>
+<pre><code>bits(scan.back()) == bits(canonical_block_dyadic_reduce)
+scan[i] == canonical_block_dyadic_reduce(input[0..i+1))</code></pre>
+<p>At <code>N = 10,000</code> <code>double</code> inputs (in-cache
+regime), the reduce measurements are: peak
+<code>canonical_block_dyadic_reduce&lt;32&gt;</code> throughput is
+approximately 41.5 GB/s on x86-64 against an <code>std::reduce</code>
+baseline of approximately 23.3 GB/s, and approximately 41.9 GB/s on
+AArch64 against an <code>std::reduce</code> baseline of approximately
+35.5 GB/s. The scan measurements are: peak
+<code>canonical_block_dyadic_scan&lt;32&gt;</code> throughput is
+approximately 11.8 GB/s on x86-64 against an
+<code>std::inclusive_scan</code> baseline of approximately 10.2 GB/s,
+and peak <code>canonical_block_dyadic_scan&lt;16&gt;</code> throughput
+is approximately 12.3 GB/s on AArch64 against an
+<code>std::inclusive_scan</code> baseline of approximately 12.1 GB/s.
+Both artifacts report exact bit-equality at every sampled prefix with
+the §6.4 literal-evaluator oracle and with the canonical reduction over
+the same prefix.</p>
+<p>The standardization-relevant observation is not the absolute
+throughput, which depends on the host. It is that the block size at
+which the named expression performs best is not the same across hosts:
+<code>B = 32</code> is the best scan block size on the x86-64 host,
+while <code>B = 16</code> is the best scan block size on the AArch64
+host. This is the same expression family —
+<code>canonical_block_dyadic</code> — instantiated at two different
+values of <code>B</code>, and therefore two distinct expression
+contracts in the sense of §6.4. The realization is the same single-pass
+O(N) construction in both cases; the differing contract parameter is
+precisely the semantic distinction. It is empirical evidence for the
+§6.6 point that the best instance of a parameterized expression family
+may differ across targets, and for the §13 observation that a portable
+named expression and an implementation-defined deterministic expression
+are different specification choices rather than the same choice
+expressed at different granularities. The closeness of
+<code>canonical_block_dyadic_reduce</code> to the autovectorized
+<code>std::reduce</code> baseline on AArch64 — and the wider gap to it
+on x86-64 — is a measurement, not a property of the contract; it is
+recorded here only to indicate that the named expression is
+implementable at rates close to a non-deterministic reduce on present
+hardware.</p>
+<hr />
+<h1 id="appendix-f-cross-platform-expression-reproducibility-witness-same-expression-same-bits-three-platforms">Appendix
+F: Cross-platform expression-reproducibility witness — same expression,
+same bits, three platforms</h1>
+<p>The following Compiler Explorer artifacts are informative and are not
+proposed wording:</p>
+<ul>
+<li><a href="https://godbolt.org/z/WovKvEh1b">host witness (x86-64, GCC
+16.1)</a><br />
+URL: <a href="https://godbolt.org/z/WovKvEh1b" class="uri">https://godbolt.org/z/WovKvEh1b</a></li>
+<li><a href="https://godbolt.org/z/bjd5sfMKv">host witness (AArch64,
+Clang)</a><br />
+URL: <a href="https://godbolt.org/z/bjd5sfMKv" class="uri">https://godbolt.org/z/bjd5sfMKv</a></li>
+<li><a href="https://godbolt.org/z/9ME9dYeen">CUDA witness</a><br />
+URL: <a href="https://godbolt.org/z/9ME9dYeen" class="uri">https://godbolt.org/z/9ME9dYeen</a></li>
+</ul>
+<p>This appendix witnesses cross-platform expression-level
+reproducibility — the stronger of the determinism scopes distinguished
+in §2 — for two named expressions:</p>
+<pre><code>canonical_pairwise            (P4016R0 §4, Appendix A)
+canonical_block_dyadic        (§6.4, at B = 16 and at B = 256)</code></pre>
+<p>The shared input is a fixed hostile dataset of
+<code>N = 1,048,576</code> <code>double</code> values generated by an
+inlined splitmix64 stream and an explicit bits-to-double constructor
+(sign, biased exponent in <code>[1e-30, 1e+8]</code>, mantissa). The
+generator is pure unsigned bit operations, with no dependence on
+<code>std::uniform_real_distribution</code> or any other library-defined
+distribution, so it is byte-identical across libc, compiler, host, and
+device.</p>
+<p>Each platform runs an independent implementation of each expression —
+single-pass O(N) iterated-stack on host, single-thread
+<code>&lt;&lt;&lt;1, 1&gt;&gt;&gt;</code> device kernel on CUDA — and
+emits, for each (expression, block size):</p>
+<ul>
+<li>the inclusive-scan back element in hex,</li>
+<li>the reduction in hex,</li>
+<li>an FNV-1a 64-bit hash of the full 1M-element scan output,</li>
+<li>24 individual prefix values at non-block-aligned positions.</li>
+</ul>
+<p><strong>Probe-position design.</strong> The probe positions are
+deliberately chosen to test the hard case. They are filtered so that
+every reported probe lies strictly inside <code>[1, B-2]</code> for both
+<code>B = 16</code> and <code>B = 256</code>. This avoids the common
+false positive in which an implementation gets block-aligned prefixes
+right but fails to attach the completed-block carry correctly to a
+partial local prefix: block-aligned positions evaluate the §6.4
+expression with an empty partial-peer term <code>P_b(j)</code> and
+reduce to <code>op(init, D_b)</code>, which a wide class of incorrect
+implementations would still get right.</p>
+<p>The probes here therefore force the peer-attached
+partial-block-prefix rule to be exercised at every reported position,
+not merely root agreement or block-boundary agreement. The full-array
+FNV-1a hash separately covers the block-aligned positions plus all other
+outputs.</p>
+<p>The 24 probe positions are the union of <code>{1/3, 2/3}</code>,
+<code>{k/9 : 1 ≤ k ≤ 8}</code>, and
+<code>{k/27 : 1 ≤ k ≤ 26, k mod 3 ≠ 0}</code> fractions of
+<code>N</code>, after applying the probe-position filter above.</p>
+<p>Each emitted value is compared on-line against a hard-coded expected
+bit pattern, with a <code>[PASS]</code> / <code>[FAIL]</code> verdict
+per row and a <code>SUMMARY</code> line at the end. The expected values
+were recorded from an authoritative first run on x86-64 with
+<code>-O3 -std=c++20 -ffp-contract=off</code> and IEEE 754
+round-to-nearest-even. Each platform’s witness returns 0 on full
+agreement and a non-zero exit code on any mismatch. The build flags
+required for the witness to PASS are stated in each artifact:
+<code>-ffp-contract=off</code> on host, <code>--fmad=false</code> on
+CUDA, no <code>-ffast-math</code>, no <code>-mfma</code>.</p>
+<p>The three artifacts report <code>84 PASS, 0 FAIL</code> each, with
+bit-identical outputs across x86-64 (GCC 16.1), AArch64 (Clang), and
+CUDA (NVCC, single-thread kernel on a server-class GPU). Identical
+means: the three full-array FNV-1a 64-bit scan hashes per expression
+agree across all three platforms, the 24 mid-block probe values per
+expression agree, the reduction value agrees, and the back element of
+the scan agrees. The three expressions produce three different hashes on
+each platform — same input, different bracketings, distinguishable
+outputs — and each expression’s hash is invariant across the three
+platforms.</p>
+<p>The standardization-relevant observation is that the cross-ISA scope
+of determinism §2 distinguishes — agreement of independent conforming
+implementations of the same named expression on the same input — is
+achievable in practice, given a floating-point environment that is
+constrained at the build level rather than left to the implementation. A
+matching FNV-1a 64-bit hash plus 24 matching mid-block probes is
+necessary but not sufficient evidence that two implementations evaluate
+the same expression tree at every node; it is evidence that the observed
+outputs are bit-identical at every position, which is the property the
+paper claims under “expression state composes, returned values are
+observed” (§5).</p>
+<hr />
+<h1 id="references">References</h1>
+<ul>
+<li><p>[Blelloch1990] Guy E. Blelloch. <em>Prefix Sums and Their
+Applications.</em> Technical Report CMU-CS-90-190, School of Computer
+Science, Carnegie Mellon University, November 1990.</p></li>
+<li><p>[P4016R0] Andrew Drakeford. <em>Canonical Parallel Reduction: A
+Fixed Expression Structure for Run-To-Run Consistency.</em> WG21 working
+paper P4016R0, ISO/IEC JTC1/SC22/WG21, pre-Croydon mailing, February
+2026.</p></li>
+<li><p>[P3375R3] Guy Davidson. <em>Reproducible Floating-Point
+Results.</em> WG21 working paper P3375R3, ISO/IEC JTC1/SC22/WG21,
+2025.</p></li>
+<li><p>[Higham2002] Nicholas J. Higham. <em>Accuracy and Stability of
+Numerical Algorithms</em>, 2nd edition. SIAM, 2002.</p></li>
+<li><p>[Dalton2014] Barnaby Dalton, Amy Wang, and Bob Blainey.
+<em>SIMDizing Pairwise Sums: A Summation Algorithm Balancing Accuracy
+with Throughput.</em> In Proceedings of the 2014 Workshop on Programming
+Models for SIMD/Vector Processing (WPMVP ’14), pp. 65–70, ACM,
+2014.</p></li>
+<li><p>[Merrill2016] Duane Merrill and Michael Garland. <em>Single-pass
+Parallel Prefix Scan with Decoupled Look-back.</em> NVIDIA Technical
+Report NVR-2016-002, NVIDIA Corporation, March 2016.</p></li>
+</ul>
+</body>
+</html>
